@@ -17,7 +17,7 @@
           "id": { "type": "string" },
           "type": {
             "type": "string",
-            "enum": ["talking_head", "broll", "animation", "character_scene", "diagram", "text_card", "transition", "generated", "screen_recording"]
+            "enum": ["talking_head", "broll", "animation", "procedural_3d", "character_scene", "diagram", "text_card", "transition", "generated", "screen_recording"]
           },
           "description": { "type": "string" },
           "start_seconds": { "type": "number", "minimum": 0 },
@@ -28,6 +28,22 @@
           "transition_in": { "type": "string" },
           "transition_out": { "type": "string" },
           "overlay_notes": { "type": "string" },
+          "three_scene": {
+            "type": "object",
+            "required": ["template_id", "seed", "duration_frames", "anchor_id", "beat_cue_frames"],
+            "properties": {
+              "template_id": {"type": "string", "enum": ["ui-depth-stack", "orbital-reveal", "data-constellation"]},
+              "seed": {"type": "integer"},
+              "duration_frames": {"type": "integer", "minimum": 1},
+              "anchor_id": {"type": "string"},
+              "beat_cue_frames": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+              "theme": {"type": "object"},
+              "camera": {"type": "object"},
+              "lighting": {"type": "object"},
+              "content": {"type": "object"}
+            },
+            "additionalProperties": false
+          },
           "shot_language": {
             "type": "object",
             "description": "Structured cinematography vocabulary for this scene",

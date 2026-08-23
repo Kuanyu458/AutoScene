@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: /remotion-composer
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      # Remotion is intentionally locked as one synchronized package family.
+      # Upgrade it through a reviewed compatibility PR, never one package at a time.
+      - dependency-name: "@remotion/*"
+      - dependency-name: "remotion"

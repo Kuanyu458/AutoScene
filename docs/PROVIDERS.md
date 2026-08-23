@@ -26,6 +26,17 @@ Everything you need to know about every provider in OpenMontage — setup instru
 | 14 | **$0 + GPU** | Local video gen | WAN 2.1, Hunyuan, CogVideo, LTX — free, offline |
 | 15 | **$0 + GPU** | Local Diffusion | Stable Diffusion images — free, offline |
 
+### Local UI capture (no API key)
+
+For a polished recording of a real desktop product, OpenMontage can ingest an
+MP4 exported from [Recordly](https://github.com/webadderallorg/Recordly). Recordly
+is a separate human-operated desktop app, not a bundled provider or headless
+runtime. The `recordly_recorder` bridge detects it, provides setup guidance, and
+copies/probes/hashes only the MP4 path the user explicitly selects. For
+deterministic browser-only flows use `playwright-recording`; for automated raw
+desktop capture use `screen_recorder` (FFmpeg). Details:
+[RECORDLY_UI_CAPTURE.md](RECORDLY_UI_CAPTURE.md).
+
 ### Environment Variable Summary
 
 ```bash

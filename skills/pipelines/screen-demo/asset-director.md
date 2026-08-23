@@ -10,7 +10,7 @@ This stage produces the minimal but high-leverage assets that make a screen demo
 
 | Mode | When | Asset production looks like |
 |---|---|---|
-| **`real_capture`** | Real app UI (browser, design tool, IDE with plugins); live behavior; user asked for their own screen recorded | Clean audio + subtitles + callout overlays (arrows, highlight masks) applied on top of the captured MP4 |
+| **`real_capture`** | Real app UI (browser, design tool, IDE with plugins); live behavior; user asked for their own screen recorded | Validate the staged `ScreenCapturePackage`, then apply clean audio + subtitles + callout overlays (arrows, highlight masks) on top of its MP4 |
 | **`synthetic_terminal`** | CLI, terminal, install flow, make targets, git/npm commands, `.env` config — anything scriptable | **No capture at all.** Author a `terminal_scene` cut for `video_compose` (Remotion). Commands type char-by-char, output scrolls, pills announce completions. See `.agents/skills/synthetic-screen-recording/SKILL.md`. |
 
 **Mode selection heuristic:** *"Can I predict every command and its output before shooting?"* If yes → synthetic. If no → real capture.
@@ -26,9 +26,30 @@ For synthetic mode, the asset stage produces:
 | Layer | Resource | Purpose |
 |-------|----------|---------|
 | Schema | `schemas/artifacts/asset_manifest.schema.json` | Artifact validation |
-| Prior artifacts | `state.artifacts["scene_plan"]["scene_plan"]`, `state.artifacts["script"]["script"]`, `state.artifacts["idea"]["brief"]` | What to produce |
+| Prior artifacts | `state.artifacts["scene_plan"]["scene_plan"]`, `state.artifacts["script"]["script"]`, `state.artifacts["idea"]["brief"]`, optional `screen_capture_package` | What to produce |
 | Tools | `subtitle_gen`, `audio_enhance`, `tts_selector`, `image_selector`, `diagram_gen` — selectors auto-discover all available providers from the registry | Generation capabilities |
 | Playbook | Active style playbook | Typography and overlay styling |
+
+### Real-capture package gate
+
+When `production_mode="real_capture"` and the footage came through Recordly or
+another capture adapter:
+
+1. Validate it against
+   `schemas/artifacts/screen_capture_package.schema.json`.
+2. Use the capture adapter's `verify` operation and independently confirm that
+   `video.relative_path`, resolved from the directory containing
+   `screen_capture_package.json`, stays inside that package directory, ends in
+   `.mp4`, exists, and matches `video.sha256`.
+3. Convert the resolved package member into a project-relative path when adding
+   it to `asset_manifest`; never restore the recorder's original absolute path.
+4. Preserve `backend`, hash, and sanitized provenance. Raw Recordly editor
+   projects, absolute-path session JSON, and recording diagnostics are not
+   assets. Only schema-declared normalized sidecars may be retained.
+
+For Recordly, capture remains a user-driven action in its external UI. The asset
+stage may ingest and verify the result; it must not automate undocumented
+private export hooks.
 
 ## Process
 
@@ -73,6 +94,15 @@ Do not generate bespoke assets for every click. Build a small shared kit:
 
 These should be reusable across scenes, with timing and placement handled downstream.
 
+Before building the blur masks, inspect representative frames plus every
+planned transition boundary. Add each discovered credential, personal datum,
+notification, private tab, payment/health datum, or confidential product datum
+to `screen_capture_package.privacy_review.sensitive_regions`. Record only its
+kind, frame range, normalized bounding box, action, and resolution state—never
+copy the sensitive value into an artifact or log. Keep the privacy review
+`pending` until every required mask/cut has been verified on the rendered
+output.
+
 ### 4. Clean Or Generate Audio Pragmatically
 
 Goals:
@@ -109,6 +139,9 @@ Use `asset_manifest.metadata` for details like:
 - `audio_settings`
 - `narration_mode`
 - `sensitive_regions`
+- `screen_capture_package_ref`
+- `capture_backend`
+- `capture_sha256`
 
 ### 7. Quality Gate
 
@@ -127,6 +160,10 @@ Use `asset_manifest.metadata` for details like:
 - [ ] Cleaned audio has no remaining distracting noise
 - [ ] Callout colors have sufficient contrast
 - [ ] Blur masks fully cover the sensitive content
+- [ ] Real-capture package path is package-directory-relative; the asset-manifest
+      path is project-relative; and the SHA-256 still matches
+- [ ] Every sensitive region has an explicit blur/crop/cut/replace action; none
+      is silently treated as safe
 
 ### Mid-Production Fact Verification
 

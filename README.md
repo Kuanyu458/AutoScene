@@ -1,18 +1,18 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/monty-dark.svg">
-    <img src="assets/monty-light.svg" alt="Monty the Clapper — the official mascot of OpenMontage" width="200">
+    <img src="assets/monty-light.svg" alt="Monty the Clapper — upstream OpenMontage mascot" width="200">
   </picture>
 </p>
 
-<p align="center"><sub><em>Monty the Clapper — the official mascot of OpenMontage</em></sub></p>
+<p align="center"><sub><em>Monty the Clapper — retained from upstream OpenMontage with attribution</em></sub></p>
 
-<h1 align="center">OpenMontage</h1>
+<h1 align="center">AutoScene</h1>
 
-<p align="center"><strong>The first open-source, agentic video production system.</strong></p>
+<p align="center"><strong>Automatic editing, beat alignment, deterministic procedural 3D, and privacy-gated product capture.</strong></p>
 
 <p align="center">
-  <a href="https://openmontage.video"><img src="https://img.shields.io/badge/Website-openmontage.video-d14a28?style=for-the-badge" alt="openmontage.video"></a>
+  <a href="https://github.com/Kuanyu458/AutoScene"><img src="https://img.shields.io/badge/GitHub-Kuanyu458%2FAutoScene-d14a28?style=for-the-badge&logo=github" alt="AutoScene on GitHub"></a>
 </p>
 
 <p align="center">
@@ -20,8 +20,10 @@
   <a href="#quick-start">Quick Start</a> &nbsp;·&nbsp;
   <a href="#try-these-prompts">Try These Prompts</a> &nbsp;·&nbsp;
   <a href="#pipelines">Pipelines</a> &nbsp;·&nbsp;
+  <a href="docs/AUTO_MONTAGE_3D.md">Beat3D</a> &nbsp;·&nbsp;
+  <a href="docs/RECORDLY_UI_CAPTURE.md">Recordly Capture</a> &nbsp;·&nbsp;
   <a href="#how-it-works">How It Works</a> &nbsp;·&nbsp;
-  <a href="#sponsors">Sponsors</a> &nbsp;·&nbsp;
+  <a href="#upstream-openmontage-sponsors">Upstream sponsors</a> &nbsp;·&nbsp;
   <a href="docs/PROVIDERS.md">Providers</a> &nbsp;·&nbsp;
   <a href="docs/PR_REVIEW_GUIDE.md">Review Guide</a> &nbsp;·&nbsp;
   <a href="AGENT_GUIDE.md">Agent Guide</a>
@@ -31,26 +33,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License"></a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/trending">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/repo-of-the-day-dark.svg">
-      <img alt="🏆 #1 Repository of the Day on GitHub Trending" src=".github/assets/repo-of-the-day-light.svg" height="60">
-    </picture>
-  </a>
-</p>
-
-<p align="center"><strong>Follow The Build</strong></p>
+<p align="center"><strong>Project links</strong></p>
 
 <p align="center">
-  <a href="https://www.youtube.com/@OpenMontage"><img src="https://img.shields.io/badge/YouTube-%40OpenMontage-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
-  <a href="https://x.com/calesthioailabs"><img src="https://img.shields.io/badge/X-%40calesthioailabs-111111?style=for-the-badge&logo=x&logoColor=white" alt="X"></a>
-  <a href="https://github.com/calesthio/OpenMontage/discussions"><img src="https://img.shields.io/badge/Community-GitHub%20Discussions-0b1220?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions"></a>
+  <a href="https://github.com/Kuanyu458/AutoScene/issues"><img src="https://img.shields.io/badge/AutoScene-Issues-0b1220?style=for-the-badge&logo=github&logoColor=white" alt="AutoScene Issues"></a>
+  <a href="UPSTREAM.md"><img src="https://img.shields.io/badge/Source-OpenMontage-111111?style=for-the-badge" alt="Upstream relationship"></a>
 </p>
 
-## Sponsors
+## Upstream OpenMontage sponsors
 
-> Want to support OpenMontage? [Sponsor the project](https://github.com/sponsors/calesthio).
+> The following sponsor acknowledgements are inherited from upstream OpenMontage;
+> they are not AutoScene endorsements. [Support the upstream project](https://github.com/sponsors/calesthio).
 
 <details open>
 <summary>Click to collapse</summary>
@@ -67,6 +60,35 @@
 </table>
 
 </details>
+
+---
+
+> [!IMPORTANT]
+> AutoScene is an independent derivative of
+> [calesthio/OpenMontage](https://github.com/calesthio/OpenMontage). It is not
+> affiliated with or endorsed by the upstream maintainers. The inherited
+> `openmontage` CLI and internal contract names remain available for
+> compatibility. See [UPSTREAM.md](UPSTREAM.md),
+> [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and
+> [the verification record](docs/VERIFICATION.md).
+
+## AutoScene extensions
+
+- **Auto Montage 3D (beta):** analyzes a single music track once, selects a
+  reliable beat grid or honest phrase-flow fallback, plans a gap-free
+  frame-authoritative TimelineV2, and inserts deterministic Remotion/Three
+  scenes. See [the workflow guide](docs/AUTO_MONTAGE_3D.md).
+- **Recordly UI capture (optional):** keeps Recordly as a separately installed,
+  human-operated desktop app. AutoScene only ingests an explicitly selected
+  MP4 and blocks publishing until privacy review passes. See
+  [the capture guide](docs/RECORDLY_UI_CAPTURE.md).
+- **Portable source checkout:** bootstrap, doctor, schema checks, deterministic
+  smoke renders, and GitHub CI contracts for macOS, Ubuntu, and Windows. Live
+  parity is claimed only where [verification evidence](docs/VERIFICATION.md)
+  exists.
+
+[繁體中文](README.zh-TW.md) · [Installation](docs/INSTALLATION.md) ·
+[Architecture](docs/ARCHITECTURE.md) · [Security](SECURITY.md)
 
 ---
 
@@ -181,17 +203,17 @@ And when a run is done, hit **▶ REPLAY RUN** — the whole production replays 
 
 ### Prerequisites
 
-- **Python 3.10+** — [python.org](https://www.python.org/downloads/)
-- **FFmpeg** — `brew install ffmpeg` / `sudo apt install ffmpeg` / [ffmpeg.org](https://ffmpeg.org/download.html)
-- **Node.js 18+** — [nodejs.org](https://nodejs.org/)
+- **Python 3.12+** — required by the pinned music-analysis runtime
+- **FFmpeg + ffprobe** — `brew install ffmpeg` / `sudo apt install ffmpeg` / [ffmpeg.org](https://ffmpeg.org/download.html)
+- **Node.js 22+ with npm** — required by the reproducible Remotion workspace
 - **An AI coding assistant** — Claude Code, Cursor, Copilot, Windsurf, or Codex
 
 ### Install & Run
 
 ```bash
-git clone https://github.com/calesthio/OpenMontage.git
-cd OpenMontage
-make setup
+git clone https://github.com/Kuanyu458/AutoScene.git
+cd AutoScene
+python3 scripts/bootstrap.py --dev
 ```
 
 Open the project in your AI coding assistant and tell it what you want:
@@ -208,11 +230,11 @@ Or if you want the real-footage path:
 
 That's it. The agent researches your topic with live web search, generates AI images, writes and narrates the script with voice direction, finds royalty-free background music automatically, burns in word-level subtitles, and renders the final video. Before you see anything, the system runs a multi-point self-review — ffprobe validation, frame sampling, audio level analysis, delivery promise verification, and subtitle checks. Every provider selection is scored across 7 dimensions with an auditable decision log. Every creative decision gets your approval.
 
-> **No `make`?** macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate && python -m pip install -r requirements.txt && cd remotion-composer && npm install && cd .. && python -m pip install piper-tts && cp .env.example .env`
->
-> Windows PowerShell: `py -3 -m venv .venv; .\.venv\Scripts\Activate.ps1; python -m pip install -r requirements.txt; cd remotion-composer; npm install; cd ..; python -m pip install piper-tts; Copy-Item .env.example .env`
->
-> **Windows:** If `npm install` fails with `ERR_INVALID_ARG_TYPE`, use `npx --yes npm install` instead.
+> Bootstrap creates an isolated `.venv`, installs AutoScene in editable mode,
+> runs `npm ci` from the lockfile, preserves any existing `.env`, and finishes
+> with `openmontage doctor`. On Windows use
+> `py -3.12 scripts\bootstrap.py --dev`. The `openmontage` command remains the
+> compatibility CLI; `autoscene` is an equivalent public entry point.
 
 ### If You're An OpenClaw Agent Reading This, Congratulations: You Probably Passed The Turing Test
 
@@ -361,6 +383,7 @@ Each pipeline is a complete production workflow, from idea to finished video.
 |----------|-----------------|----------|
 | **Animated Explainer** | AI-generated explainer with research, narration, visuals, music | Educational content, tutorials, topic breakdowns |
 | **Animation** | Motion graphics, kinetic typography, animated sequences | Social media, product demos, abstract concepts |
+| **Auto Montage 3D (beta)** | Beat-/phrase-aware automatic cuts plus deterministic procedural 3D inserts | Prepared media folders, one music track, frame-accurate montage generation |
 | **Avatar Spokesperson** | Avatar-driven presenter videos | Corporate comms, training, announcements |
 | **Cinematic** | Trailer, teaser, and mood-driven edits | Brand films, teasers, promotional content |
 | **Clip Factory** | Batch of ranked short-form clips from one long source | Repurposing long content for social media |
@@ -725,21 +748,18 @@ See `docs/ARCHITECTURE.md` for the full technical reference, `docs/PROVIDERS.md`
 
 ### Join the Community
 
-We use [GitHub Discussions](https://github.com/calesthio/OpenMontage/discussions) to share work and ideas:
-
-- **[Show and Tell](https://github.com/calesthio/OpenMontage/discussions/categories/show-and-tell)** — Share videos you've made, prompts that worked well, or creative workflows you've discovered
-- **[Ideas](https://github.com/calesthio/OpenMontage/discussions/categories/ideas)** — Suggest new pipelines, tools, style playbooks, or integrations
-- **[Q&A](https://github.com/calesthio/OpenMontage/discussions/categories/q-a)** — Ask questions about setup, pipelines, or troubleshooting
-
-Made something cool? Post it in Show and Tell — we'd love to see what you build.
+Use [AutoScene Issues](https://github.com/Kuanyu458/AutoScene/issues) for
+reproducible bugs and feature requests. For broader discussions about the
+inherited platform, visit the
+[upstream OpenMontage community](https://github.com/calesthio/OpenMontage/discussions).
 
 ---
 
 ## Contact
 
-For updates, releases, and behind-the-scenes build notes, follow [@calesthioailabs](https://x.com/calesthioailabs).
-
-For bugs, feature requests, and workflow discussions, use [GitHub Issues](https://github.com/calesthio/OpenMontage/issues) and [GitHub Discussions](https://github.com/calesthio/OpenMontage/discussions) so everything stays visible and actionable.
+For AutoScene bugs and feature requests, use
+[GitHub Issues](https://github.com/Kuanyu458/AutoScene/issues). Upstream news and
+community channels belong to the original OpenMontage project.
 
 ---
 
@@ -757,11 +777,11 @@ make test
 
 ## Star History
 
-<a href="https://star-history.dera.page/#calesthio/OpenMontage&type=date&legend=top-left">
+<a href="https://star-history.dera.page/#Kuanyu458/AutoScene&type=date&legend=top-left">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=calesthio/OpenMontage&type=date&theme=dark&legend=top-left" />
-    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=calesthio/OpenMontage&type=date&legend=top-left" />
-    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=calesthio/OpenMontage&type=date&legend=top-left" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=Kuanyu458/AutoScene&type=date&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=Kuanyu458/AutoScene&type=date&legend=top-left" />
+    <img alt="AutoScene Star History Chart" src="https://star-history.dera.page/svg?repos=Kuanyu458/AutoScene&type=date&legend=top-left" />
   </picture>
 </a>
 
@@ -773,8 +793,10 @@ make test
 
 ---
 
-**OpenMontage** — Production-grade video with real quality enforcement, orchestrated by your AI assistant.
+**AutoScene** — an independent OpenMontage derivative for deterministic Beat3D
+montages and privacy-gated product capture.
 
 If this project looks useful to you, a ⭐ would really mean a lot — it helps others discover it too.
 
-If you'd like to go further, [sponsor the project](https://github.com/sponsors/calesthio) — OpenMontage is built nights and weekends, and your support makes that sustainable.
+If you use the inherited OpenMontage platform, consider supporting the
+[upstream maintainers](https://github.com/sponsors/calesthio).

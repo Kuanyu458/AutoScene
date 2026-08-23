@@ -1,32 +1,45 @@
 {
   "name": "openmontage-remotion-composer",
   "version": "1.0.0",
-  "description": "Remotion composition renderer for OpenMontage animated explainer videos",
+  "description": "Remotion composition renderer for AutoScene and inherited OpenMontage pipelines",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "npx remotion studio",
     "build": "npx remotion render src/index.tsx Explainer out/video.mp4",
+    "typecheck": "tsc --noEmit",
     "upgrade": "npx remotion upgrade"
   },
   "dependencies": {
-    "@remotion/captions": "^4.0.484",
-    "@remotion/cli": "^4.0.484",
-    "@remotion/google-fonts": "^4.0.484",
-    "@remotion/media": "^4.0.484",
-    "@remotion/player": "^4.0.484",
-    "@remotion/transitions": "^4.0.484",
+    "@remotion/captions": "4.0.484",
+    "@remotion/cli": "4.0.484",
+    "@remotion/google-fonts": "4.0.484",
+    "@remotion/media": "4.0.484",
+    "@remotion/player": "4.0.484",
+    "@remotion/transitions": "4.0.484",
+    "@remotion/three": "4.0.484",
+    "@react-three/fiber": "8.18.0",
     "d3-geo": "^3.1.1",
-    "fast-uri": "^3.1.5",
+    "fast-uri": "3.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "remotion": "^4.0.484",
+    "remotion": "4.0.484",
     "topojson-client": "^3.1.0",
-    "world-atlas": "^2.0.2"
+    "world-atlas": "^2.0.2",
+    "three": "0.155.0"
   },
   "devDependencies": {
+    "@types/offscreencanvas": "2019.7.3",
     "@types/react": "^18.2.0",
+    "@types/three": "0.155.1",
     "typescript": "^5.3.0"
   },
   "overrides": {
-    "nanoid": "3.3.18"
+    "fast-uri": "$fast-uri",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.25"
   }
 }

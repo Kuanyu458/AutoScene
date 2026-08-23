@@ -1,5 +1,2 @@
-# OpenMontage - Development Dependencies
--r requirements.txt
-pytest>=8.0
-pytest-asyncio>=0.23
-httpx>=0.24
+# Compatibility entry point for tooling that expects requirements-dev.txt.
+-e .[dev]

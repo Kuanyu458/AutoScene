@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/montage_request",
+  "title": "Montage Request",
+  "type": "object",
+  "required": ["version", "project_slug", "input_dir", "brief", "music", "media", "output", "settings"],
+  "properties": {
+    "version": {"type": "string", "const": "1.0"},
+    "project_slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "input_dir": {"type": "string"},
+    "brief": {"$ref": "#/$defs/file"},
+    "music": {"$ref": "#/$defs/file"},
+    "media": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/file"}},
+    "output": {
+      "type": "object",
+      "required": ["project_dir", "request_relative_path"],
+      "properties": {
+        "project_dir": {"type": "string"},
+        "request_relative_path": {"type": "string", "const": "montage_request.json"}
+      },
+      "additionalProperties": false
+    },
+    "settings": {
+      "type": "object",
+      "required": ["width", "height", "fps", "beat_sync_policy", "three_d_enabled", "allow_repeat"],
+      "properties": {
+        "width": {"type": "integer", "const": 1920},
+        "height": {"type": "integer", "const": 1080},
+        "fps": {"type": "integer", "const": 30},
+        "beat_sync_policy": {"type": "string", "enum": ["adaptive", "beat_cut", "phrase_flow"]},
+        "three_d_enabled": {"type": "boolean"},
+        "allow_repeat": {"type": "boolean"},
+        "target_duration_seconds": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "music_offset_seconds": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "inventory_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "metadata": {"type": "object"}
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["source_path", "staged_path", "staged_relative_path", "sha256", "size_bytes"],
+      "properties": {
+        "source_path": {"type": "string"},
+        "staged_path": {"type": "string"},
+        "staged_relative_path": {"type": "string", "pattern": "^(?!/)(?!.*\\.\\.).+$"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1},
+        "media_type": {"type": "string", "enum": ["brief", "music", "video", "image"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -42,6 +42,12 @@ from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import unquote, urlsplit
 
+from lib.edit_timeline import (
+    TimelineContractError,
+    adapt_timeline_for_runtime,
+    normalize_edit_decisions,
+)
+
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -435,6 +441,64 @@ class VideoCompose(BaseTool):
             artifacts=[str(video_path)],
         )
 
+    def _normalize_timeline_v2_duration(
+        self, output_path: Path, edit_decisions: dict[str, Any]
+    ) -> ToolResult:
+        """Trim a rendered TimelineV2 container to its frame-authoritative length."""
+
+        is_v2 = (
+            edit_decisions.get("version") == "2.0"
+            or edit_decisions.get("timeline_version") == "2.0"
+        )
+        if not is_v2:
+            return ToolResult(success=True, data={"normalized": False})
+
+        try:
+            total_frames = int(edit_decisions.get("total_frames") or 0)
+            fps = int(edit_decisions.get("fps") or 30)
+        except (TypeError, ValueError):
+            return ToolResult(success=False, error="TimelineV2 duration metadata is invalid")
+        if total_frames <= 0 or fps <= 0:
+            return ToolResult(
+                success=False,
+                error="TimelineV2 exact-duration normalization requires total_frames and fps",
+            )
+
+        exact_duration = total_frames / fps
+        normalized_path = output_path.with_name(
+            f".{output_path.stem}.duration-normalized-{time.time_ns()}{output_path.suffix}"
+        )
+        try:
+            completed = subprocess.run(
+                [
+                    "ffmpeg", "-y", "-i", str(output_path),
+                    "-t", f"{exact_duration:.9f}",
+                    "-map", "0:v:0", "-map", "0:a:0?",
+                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                    "-movflags", "+faststart", str(normalized_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if completed.returncode != 0 or not normalized_path.is_file():
+                return ToolResult(
+                    success=False,
+                    error=(
+                        "TimelineV2 exact-duration remux failed: "
+                        + (completed.stderr or "")[-3000:]
+                    ),
+                )
+            normalized_path.replace(output_path)
+        finally:
+            normalized_path.unlink(missing_ok=True)
+
+        return ToolResult(
+            success=True,
+            data={"normalized": True, "duration_seconds": exact_duration},
+            artifacts=[str(output_path)],
+        )
+
     def _compose(self, inputs: dict[str, Any]) -> ToolResult:
         """FFmpeg composition: concat video cuts, add audio, burn subtitles.
 
@@ -445,6 +509,11 @@ class VideoCompose(BaseTool):
         edit_decisions = inputs.get("edit_decisions")
         if not edit_decisions:
             return ToolResult(success=False, error="edit_decisions required for compose")
+        if edit_decisions.get("version") == "2.0":
+            try:
+                edit_decisions = adapt_timeline_for_runtime(edit_decisions, "ffmpeg")
+            except TimelineContractError as exc:
+                return ToolResult(success=False, error=f"TimelineV2 contract invalid: {exc}")
 
         output_path = Path(inputs.get("output_path", "composed_output.mp4"))
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -763,8 +832,16 @@ class VideoCompose(BaseTool):
         return comp
 
     @staticmethod
-    def _cuts_to_cinematic_scenes(cuts: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Adapt canonical sequential cuts to CinematicRenderer's scene contract."""
+    def _cuts_to_cinematic_scenes(
+        cuts: list[dict[str, Any]], *, timeline_v2: bool = False
+    ) -> list[dict[str, Any]]:
+        """Adapt cuts to CinematicRenderer without conflating placement and trim.
+
+        Legacy v1 cuts use ``in_seconds``/``out_seconds`` as the source range
+        and are placed sequentially. TimelineV2 runtime-adapter cuts use those
+        fields for final-timeline placement and carry the source trim in
+        ``source_in_seconds``/``source_out_seconds``.
+        """
 
         scenes: list[dict[str, Any]] = []
         timeline_cursor = 0.0
@@ -773,12 +850,28 @@ class VideoCompose(BaseTool):
 
         for index, cut in enumerate(cuts):
             try:
-                source_in = float(cut.get("in_seconds", 0))
-                source_out = float(cut.get("out_seconds", source_in))
+                placement_in = float(cut.get("in_seconds", 0))
+                placement_out = float(cut.get("out_seconds", placement_in))
                 speed = max(float(cut.get("speed", 1.0)), 0.1)
+                if timeline_v2:
+                    source_in = float(cut.get("source_in_seconds", 0))
+                    source_out = float(
+                        cut.get(
+                            "source_out_seconds",
+                            source_in + max(0.0, placement_out - placement_in) * speed,
+                        )
+                    )
+                else:
+                    source_in = placement_in
+                    source_out = placement_out
             except (TypeError, ValueError):
                 continue
-            duration = max(0.0, (source_out - source_in) / speed)
+            duration = max(
+                0.0,
+                placement_out - placement_in
+                if timeline_v2
+                else (source_out - source_in) / speed,
+            )
             if duration <= 0:
                 continue
 
@@ -787,7 +880,7 @@ class VideoCompose(BaseTool):
             cut_type = str(cut.get("type") or "").lower()
             common = {
                 "id": scene_id,
-                "startSeconds": timeline_cursor,
+                "startSeconds": placement_in if timeline_v2 else timeline_cursor,
                 "durationSeconds": duration,
             }
 
@@ -831,15 +924,15 @@ class VideoCompose(BaseTool):
 
         Handles the forms agents and tooling actually produce:
 
-        - POSIX:                  ``file:///Users/me/voice.mp3``
-        - Windows RFC:            ``file:///C:/Users/me/voice.mp3``
-        - Windows drive authority:``file://C:/Users/me/voice.mp3``
-        - Windows naive concat:   ``file://C:\\Users\\me\\voice.mp3``
+        - POSIX:                  ``file:///opt/media/voice.mp3``
+        - Windows RFC:            ``file:///C:/Media/voice.mp3``
+        - Windows drive authority:``file://C:/Media/voice.mp3``
+        - Windows naive concat:   ``file://C:\\Media\\voice.mp3``
 
         The naive form is what a bare ``f"file://{path}"`` produces on Windows.
         It has no ``/`` after the scheme, so urlsplit puts the *entire* drive
         path in ``netloc`` and leaves ``path`` empty — treating that as a UNC
-        authority (``//C:\\Users\\...``) yields a path that never resolves, so
+        authority (``//C:\\Media\\...``) yields a path that never resolves, so
         the asset is silently skipped.
         """
         parsed = urlsplit(uri)
@@ -1542,7 +1635,6 @@ class VideoCompose(BaseTool):
         # accidentally force the Remotion atelier path when HyperFrames or
         # FFmpeg was approved.
         render_runtime = (edit_decisions.get("render_runtime") or "").strip().lower()
-
         if not render_runtime:
             return ToolResult(
                 success=False,
@@ -1615,18 +1707,42 @@ class VideoCompose(BaseTool):
         # Build asset lookup: id -> asset info
         asset_lookup = {a["id"]: a for a in asset_manifest.get("assets", [])}
 
-        cuts = edit_decisions.get("cuts", [])
+        canonical_decisions = edit_decisions
+        if edit_decisions.get("version") == "2.0":
+            try:
+                canonical_decisions = normalize_edit_decisions(edit_decisions)
+            except TimelineContractError as exc:
+                return ToolResult(success=False, error=f"TimelineV2 contract invalid: {exc}")
+
+        cuts = canonical_decisions.get("cuts", [])
         if not cuts:
             return ToolResult(success=False, error="No cuts in edit_decisions")
 
         # Resolve asset IDs in cuts to file paths
-        resolved_cuts = []
+        resolved_timeline_cuts = []
         for cut in cuts:
-            source_id = cut.get("source", "")
+            source_value = cut.get("source", "")
+            source_id = source_value.get("ref", "") if isinstance(source_value, dict) else source_value
             resolved_cut = dict(cut)
             if source_id in asset_lookup:
-                resolved_cut["source"] = asset_lookup[source_id]["path"]
-            resolved_cuts.append(resolved_cut)
+                if isinstance(source_value, dict):
+                    resolved_cut["source"] = dict(source_value, ref=asset_lookup[source_id]["path"])
+                else:
+                    resolved_cut["source"] = asset_lookup[source_id]["path"]
+            resolved_timeline_cuts.append(resolved_cut)
+
+        if canonical_decisions.get("version") == "2.0":
+            try:
+                runtime_decisions = adapt_timeline_for_runtime(
+                    dict(canonical_decisions, cuts=resolved_timeline_cuts),
+                    render_runtime,
+                )
+            except TimelineContractError as exc:
+                return ToolResult(success=False, error=f"TimelineV2 runtime adapter failed: {exc}")
+            resolved_cuts = runtime_decisions["cuts"]
+        else:
+            runtime_decisions = canonical_decisions
+            resolved_cuts = resolved_timeline_cuts
 
         # --- Pre-compose validation gate ---
         scene_plan = inputs.get("scene_plan")
@@ -1637,10 +1753,15 @@ class VideoCompose(BaseTool):
         # Also accept profile as "output_profile" (skill convention) or "profile"
         profile = inputs.get("profile") or inputs.get("output_profile")
 
+        # --- Runtime routing: honor render_runtime locked at proposal ---
+        # Silent swaps are forbidden by governance. If the chosen runtime
+        # is unavailable, surface a structured blocker rather than quietly
+        # picking a different engine. Missing render_runtime is itself a
+        # governance violation — edit_decisions.schema.json requires it.
         if render_runtime == "hyperframes":
             return self._render_via_hyperframes(
                 inputs=inputs,
-                edit_decisions=edit_decisions,
+                edit_decisions=runtime_decisions,
                 asset_manifest=asset_manifest,
                 resolved_cuts=resolved_cuts,
                 output_path=output_path,
@@ -1650,15 +1771,15 @@ class VideoCompose(BaseTool):
             # Caller explicitly asked for FFmpeg — don't auto-upgrade to Remotion.
             return self._render_via_ffmpeg(
                 inputs=inputs,
-                edit_decisions=edit_decisions,
+                edit_decisions=runtime_decisions,
                 resolved_cuts=resolved_cuts,
                 output_path=output_path,
                 profile=profile,
             )
         # --- Explicit Remotion path (render_runtime == 'remotion') ---
-        if self._needs_remotion(resolved_cuts):
+        if render_runtime == "remotion":
             remotion_inputs: dict[str, Any] = {
-                "edit_decisions": dict(edit_decisions, cuts=resolved_cuts),
+                "edit_decisions": dict(runtime_decisions, cuts=resolved_cuts),
                 "output_path": str(output_path),
             }
             if profile:
@@ -1694,28 +1815,23 @@ class VideoCompose(BaseTool):
                 if not mux_result.success:
                     return mux_result
                 render_result.data["has_mixed_audio"] = True
-        else:
-            # --- FFmpeg fallback: only when Remotion is unavailable ---
-            options = inputs.get("options", {})
-            subtitle_burn = options.get("subtitle_burn", True)
+        else:  # Defensive guard; current runtime validation makes this unreachable.
+            return ToolResult(
+                success=False,
+                error=f"Unsupported render runtime after validation: {render_runtime!r}",
+            )
 
-            # Resolve subtitle_path from edit_decisions if not provided
-            subtitle_path = inputs.get("subtitle_path")
-            if subtitle_burn and not subtitle_path:
-                ed_subs = edit_decisions.get("subtitles", {})
-                if ed_subs.get("enabled") and ed_subs.get("source"):
-                    subtitle_path = ed_subs["source"]
-
-            # Build compose inputs
-            compose_inputs = dict(inputs)
-            compose_inputs["edit_decisions"] = dict(edit_decisions, cuts=resolved_cuts)
-            compose_inputs["output_path"] = str(output_path)
-            if subtitle_path:
-                compose_inputs["subtitle_path"] = subtitle_path
-            if profile:
-                compose_inputs["profile"] = profile
-
-            render_result = self._compose(compose_inputs)
+        if render_result.success and output_path.exists():
+            duration_result = self._normalize_timeline_v2_duration(
+                output_path, runtime_decisions
+            )
+            if not duration_result.success:
+                return duration_result
+            if render_result.data is None:
+                render_result.data = {}
+            render_result.data["timeline_v2_duration_normalized"] = bool(
+                duration_result.data.get("normalized")
+            )
 
         # --- Post-render: mandatory final self-review ---
         if render_result.success and output_path.exists():
@@ -1856,6 +1972,16 @@ class VideoCompose(BaseTool):
 
         # Post-render: mandatory final self-review (identical contract to the Remotion path).
         if output_path.exists():
+            duration_result = self._normalize_timeline_v2_duration(
+                output_path, edit_decisions
+            )
+            if not duration_result.success:
+                return duration_result
+            if render_result.data is None:
+                render_result.data = {}
+            render_result.data["timeline_v2_duration_normalized"] = bool(
+                duration_result.data.get("normalized")
+            )
             final_review = self._run_final_review(
                 output_path,
                 edit_decisions,
@@ -1916,6 +2042,16 @@ class VideoCompose(BaseTool):
         render_result = self._compose(compose_inputs)
 
         if render_result.success and output_path.exists():
+            duration_result = self._normalize_timeline_v2_duration(
+                output_path, edit_decisions
+            )
+            if not duration_result.success:
+                return duration_result
+            if render_result.data is None:
+                render_result.data = {}
+            render_result.data["timeline_v2_duration_normalized"] = bool(
+                duration_result.data.get("normalized")
+            )
             final_review = self._run_final_review(
                 output_path,
                 edit_decisions,
@@ -1960,6 +2096,11 @@ class VideoCompose(BaseTool):
                 success=False,
                 error="edit_decisions or composition_data required for remotion_render",
             )
+        if composition_data.get("version") == "2.0":
+            try:
+                composition_data = adapt_timeline_for_runtime(composition_data, "remotion")
+            except TimelineContractError as exc:
+                return ToolResult(success=False, error=f"TimelineV2 contract invalid: {exc}")
 
         output_path = Path(inputs.get("output_path", "renders/remotion_output.mp4"))
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1997,7 +2138,10 @@ class VideoCompose(BaseTool):
 
         if composition_id == "CinematicRenderer":
             if not props.get("scenes") and props.get("cuts"):
-                props["scenes"] = self._cuts_to_cinematic_scenes(props["cuts"])
+                props["scenes"] = self._cuts_to_cinematic_scenes(
+                    props["cuts"],
+                    timeline_v2=props.get("timeline_version") == "2.0",
+                )
             props.pop("cuts", None)
             if not props.get("scenes"):
                 return ToolResult(
@@ -2124,6 +2268,13 @@ class VideoCompose(BaseTool):
                 error=f"Remotion render completed but output file missing: {output_path}",
             )
 
+        duration_result = self._normalize_timeline_v2_duration(
+            output_path, composition_data
+        )
+        if not duration_result.success:
+            return duration_result
+        duration_normalized = bool(duration_result.data.get("normalized"))
+
         return ToolResult(
             success=True,
             data={
@@ -2131,6 +2282,7 @@ class VideoCompose(BaseTool):
                 "output": str(output_path),
                 "profile": profile_name,
                 "staged_media_count": staged_count,
+                "timeline_v2_duration_normalized": duration_normalized,
             },
             artifacts=[str(output_path)],
         )

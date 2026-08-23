@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/music_timing_map",
+  "title": "Music Timing Map",
+  "description": "Deterministic, single-pass musical timing analysis used by every downstream editor and renderer.",
+  "type": "object",
+  "required": ["version", "analyzer", "source", "audio", "tempo", "pacing", "beats", "downbeats", "onsets", "pitch_changes", "energy", "phrases", "hard_stops", "sections", "anchors"],
+  "properties": {
+    "version": {"type": "string", "const": "1.0"},
+    "analyzer": {
+      "type": "object",
+      "required": ["name", "version", "sample_rate", "hop_length"],
+      "properties": {
+        "name": {"type": "string", "const": "music_sync_analyzer"},
+        "version": {"type": "string"},
+        "sample_rate": {"type": "integer", "minimum": 8000},
+        "hop_length": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "audio": {
+      "type": "object",
+      "required": ["duration_seconds", "duration_frames_30", "sample_rate"],
+      "properties": {
+        "duration_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "duration_frames_30": {"type": "integer", "minimum": 1},
+        "sample_rate": {"type": "integer", "minimum": 8000}
+      },
+      "additionalProperties": false
+    },
+    "tempo": {
+      "type": "object",
+      "required": ["bpm", "confidence", "grid_reliable", "beats_per_bar"],
+      "properties": {
+        "bpm": {"type": "number", "minimum": 0},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "grid_reliable": {"type": "boolean"},
+        "beats_per_bar": {"type": "integer", "const": 4}
+      },
+      "additionalProperties": false
+    },
+    "pacing": {"type": "string", "enum": ["beat_cut", "phrase_flow"]},
+    "beats": {"$ref": "#/$defs/timedPoints"},
+    "downbeats": {"$ref": "#/$defs/timedPoints"},
+    "onsets": {"$ref": "#/$defs/weightedPoints"},
+    "pitch_changes": {"$ref": "#/$defs/weightedPoints"},
+    "energy": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["start_seconds", "end_seconds", "level", "value"],
+        "properties": {
+          "start_seconds": {"type": "number", "minimum": 0},
+          "end_seconds": {"type": "number", "minimum": 0},
+          "level": {"type": "string", "enum": ["void", "low", "medium", "high"]},
+          "value": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "phrases": {"$ref": "#/$defs/spans"},
+    "hard_stops": {"$ref": "#/$defs/timedPoints"},
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "start_seconds", "end_seconds", "energy", "density"],
+        "properties": {
+          "id": {"type": "string"},
+          "start_seconds": {"type": "number", "minimum": 0},
+          "end_seconds": {"type": "number", "minimum": 0},
+          "energy": {"type": "number", "minimum": 0, "maximum": 1},
+          "density": {"type": "string", "enum": ["sparse", "medium", "dense"]},
+          "recommended_cut_count": {"type": "integer", "minimum": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "time_seconds", "frame_30", "strength"],
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "string", "enum": ["beat", "downbeat", "onset", "pitch_change", "energy_change", "phrase", "hard_stop"]},
+          "time_seconds": {"type": "number", "minimum": 0},
+          "frame_30": {"type": "integer", "minimum": 0},
+          "strength": {"type": "number", "minimum": 0, "maximum": 1},
+          "section_id": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {"type": "object"}
+  },
+  "$defs": {
+    "timedPoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["time_seconds", "frame_30"],
+        "properties": {
+          "time_seconds": {"type": "number", "minimum": 0},
+          "frame_30": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
+    },
+    "weightedPoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["time_seconds", "frame_30", "strength"],
+        "properties": {
+          "time_seconds": {"type": "number", "minimum": 0},
+          "frame_30": {"type": "integer", "minimum": 0},
+          "strength": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "spans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "start_seconds", "end_seconds"],
+        "properties": {
+          "id": {"type": "string"},
+          "start_seconds": {"type": "number", "minimum": 0},
+          "end_seconds": {"type": "number", "minimum": 0},
+          "bars": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

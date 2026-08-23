@@ -1,0 +1,17 @@
+AutoScene
+=========
+
+AutoScene is an independent modified work based on OpenMontage:
+https://github.com/calesthio/OpenMontage
+
+Original OpenMontage authorship and contributor attribution are preserved by
+the fork's retained Git history and documented in UPSTREAM.md. The applicable
+GNU Affero General Public License version 3 terms are retained in LICENSE.
+
+Beat-synchronized editing, TimelineV2 integration, and procedural 3D pipeline
+modifications were added in 2026. The optional Recordly integration is an
+external exported-MP4 bridge and includes no Recordly code or assets. No
+affiliation with or endorsement by the upstream maintainers is implied.
+
+Third-party dependencies and user-supplied content have separate terms. See
+THIRD_PARTY_NOTICES.md and docs/ASSET_PROVENANCE.md.

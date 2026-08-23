@@ -1,8 +1,12 @@
-# OpenMontage Architecture
+# AutoScene architecture (OpenMontage-derived)
 
 > Last updated: 2026-03-28 | Derived from code exploration, not prior documentation.
 
-OpenMontage is an **agent-orchestrated video production platform**. An LLM coding assistant (Claude Code, Cursor, Copilot, etc.) acts as the orchestrator — reading pipeline manifests, following skill instructions, calling Python tools, and checkpointing state. There is no runtime Python orchestrator; the agent _is_ the control plane.
+AutoScene preserves OpenMontage's **agent-orchestrated video production
+architecture**. An LLM coding assistant (Claude Code, Cursor, Copilot, etc.)
+acts as the orchestrator — reading pipeline manifests, following skill
+instructions, calling Python tools, and checkpointing state. There is no
+runtime Python orchestrator; the agent _is_ the control plane.
 
 ---
 
@@ -138,7 +142,7 @@ Key queries:
 
 ### Selector Pattern
 
-Three selector tools abstract multi-provider capabilities:
+Selector tools abstract multi-provider capabilities:
 
 | Selector | Capability | How selection works |
 |----------|-----------|---------------------|
@@ -146,6 +150,7 @@ Three selector tools abstract multi-provider capabilities:
 | `image_selector` | Image generation | Ranks discovered providers from the live registry; no hardcoded provider order |
 | `video_selector` | Video generation | Ranks discovered providers from the live registry; user preference is respected when explicitly provided |
 | `atlas_image` / `atlas_video` | Atlas Cloud generation | Exposes exact per-model route catalogs for image generation/editing and text/image/reference/video-edit generation |
+| `screen_capture_selector` | Real UI capture | Preserves automation-first defaults while exposing explicit FFmpeg, Recordly, and Cap workflows; GUI providers return an awaiting-human state until verified media is ingested |
 
 Selectors route based on: user preference when explicitly set, then scored ranking across available providers. They adapt input schemas between providers transparently.
 
@@ -162,6 +167,8 @@ Selectors route based on: user preference when explicitly set, then scored ranki
 **Graphics (13):** flux_image, grok_image, google_imagen, openai_image, recraft_image, local_diffusion, pexels_image, pixabay_image, image_selector, code_snippet, diagram_gen, math_animate (ManimCE), image_gen (deprecated)
 
 **Subtitle (1):** subtitle_gen
+
+**Capture (4):** screen_capture_selector, screen_recorder (FFmpeg), recordly_recorder (external GUI bridge), cap_recorder (external GUI bridge)
 
 **Video (18):** grok_video, heygen_video, higgsfield_video, veo_video, kling_video, runway_video, minimax_video, wan_video, hunyuan_video, cogvideo_video, ltx_video_local, ltx_video_modal, pexels_video, pixabay_video, video_selector, video_compose (FFmpeg), video_stitch, video_trimmer
 
@@ -498,7 +505,7 @@ tests/
 ## System Dependencies
 
 **Required:**
-- Python >= 3.10
+- Python >= 3.12
 - FFmpeg (used by ~15 tools)
 
 **Optional (extend capabilities):**

@@ -150,6 +150,96 @@
             "art_direction": { "type": ["string", "null"] },
             "issues": { "type": "array", "items": { "type": "string" } }
           }
+        },
+        "music_sync": {
+          "type": "object",
+          "required": ["policy", "grid_reliable", "anchor_coverage", "median_error_frames", "p95_error_frames", "av_drift_ms", "within_tolerance"],
+          "properties": {
+            "policy": {"type": "string", "enum": ["beat_cut", "phrase_flow"]},
+            "grid_reliable": {"type": "boolean"},
+            "anchor_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+            "median_error_frames": {"type": "number", "minimum": 0},
+            "p95_error_frames": {"type": "number", "minimum": 0},
+            "av_drift_ms": {"type": "number", "minimum": 0},
+            "within_tolerance": {"type": "boolean"},
+            "issues": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
+        "procedural_3d": {
+          "type": "object",
+          "required": ["expected_inserts", "rendered_inserts", "black_frames_detected", "missing_assets", "backend_matches", "passed"],
+          "properties": {
+            "expected_inserts": {"type": "integer", "minimum": 0},
+            "rendered_inserts": {"type": "integer", "minimum": 0},
+            "black_frames_detected": {"type": "boolean"},
+            "missing_assets": {"type": "boolean"},
+            "backend_matches": {"type": "boolean"},
+            "passed": {"type": "boolean"},
+            "issues": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
+        "privacy": {
+          "type": "object",
+          "description": "Screen-capture privacy verification. Optional for other pipelines, but mandatory for screen-demo real_capture before publish.",
+          "required": [
+            "required",
+            "reviewed_frames",
+            "sensitive_regions_detected",
+            "unresolved_sensitive_regions",
+            "redactions_verified",
+            "passed",
+            "issues"
+          ],
+          "properties": {
+            "required": {
+              "type": "boolean",
+              "description": "True for a real UI capture; false for a synthetic demo with no captured user screen."
+            },
+            "source_package_ref": {
+              "type": "string",
+              "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$",
+              "description": "Project-relative reference to the ScreenCapturePackage artifact."
+            },
+            "reviewed_frames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sensitive_regions_detected": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved_sensitive_regions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "redactions_verified": {
+              "type": "boolean"
+            },
+            "passed": {
+              "type": "boolean"
+            },
+            "issues": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {"passed": {"const": true}},
+                "required": ["passed"]
+              },
+              "then": {
+                "properties": {
+                  "unresolved_sensitive_regions": {"const": 0},
+                  "redactions_verified": {"const": true}
+                }
+              }
+            }
+          ],
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -166,5 +256,40 @@
     },
     "metadata": { "type": "object" }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "pass"},
+          "checks": {
+            "properties": {
+              "privacy": {
+                "properties": {"required": {"const": true}},
+                "required": ["required"]
+              }
+            },
+            "required": ["privacy"]
+          }
+        },
+        "required": ["status", "checks"]
+      },
+      "then": {
+        "properties": {
+          "checks": {
+            "properties": {
+              "privacy": {
+                "properties": {
+                  "passed": {"const": true},
+                  "unresolved_sensitive_regions": {"const": 0},
+                  "redactions_verified": {"const": true}
+                },
+                "required": ["passed", "unresolved_sensitive_regions", "redactions_verified"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }

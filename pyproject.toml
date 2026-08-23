@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoscene"
+version = "0.2.0b1"
+description = "Agent-driven video production with beat-synced editing, deterministic procedural 3D, and privacy-gated UI capture"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [
+  {name = "AutoScene contributors"},
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "PyYAML>=6.0",
+  "pydantic>=2.0",
+  "jsonschema>=4.20",
+  "python-dotenv>=1.0",
+  "Pillow>=10.0",
+  "numpy>=1.24",
+  "requests>=2.31",
+  "librosa==1.0.0",
+  "soundfile==0.14.0",
+  "google-auth>=2.0",
+  "google-genai>=1.0.0",
+  "openai>=2.44.0",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "watchfiles>=0.21",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.24",
+]
+
+[project.scripts]
+autoscene = "openmontage.cli:main"
+openmontage = "openmontage.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Kuanyu458/AutoScene"
+Repository = "https://github.com/Kuanyu458/AutoScene"
+Issues = "https://github.com/Kuanyu458/AutoScene/issues"
+Upstream = "https://github.com/calesthio/OpenMontage"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["openmontage*", "lib*", "tools*", "schemas*", "backlot*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+schemas = ["**/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

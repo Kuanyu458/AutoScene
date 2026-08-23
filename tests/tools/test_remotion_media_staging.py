@@ -2,7 +2,7 @@
 
 Two defects this locks down:
 
-1. ``file://C:\\Users\\...`` — the naive ``f"file://{path}"`` form Windows
+1. ``file://C:\\Media\\...`` — the naive ``f"file://{path}"`` form Windows
    tooling produces — parsed as a UNC authority and never resolved, so the
    asset was silently skipped.
 2. ``--public-dir`` REPLACES Remotion's default public dir, so assets staged
@@ -26,14 +26,14 @@ from tools.video.video_compose import VideoCompose
 @pytest.mark.parametrize(
     ("label", "uri", "expected"),
     [
-        ("posix", "file:///Users/me/voice.mp3", "/Users/me/voice.mp3"),
-        ("windows_rfc", "file:///C:/Users/me/voice.mp3", "C:/Users/me/voice.mp3"),
-        ("windows_authority", "file://C:/Users/me/voice.mp3", "C:/Users/me/voice.mp3"),
+        ("posix", "file:///opt/media/voice.mp3", "/opt/media/voice.mp3"),
+        ("windows_rfc", "file:///C:/Media/voice.mp3", "C:/Media/voice.mp3"),
+        ("windows_authority", "file://C:/Media/voice.mp3", "C:/Media/voice.mp3"),
         # The regression: no slash after the scheme, so urlsplit puts the whole
         # drive path in netloc and leaves path empty.
-        ("windows_naive", "file://C:\\Users\\me\\voice.mp3", "C:\\Users\\me\\voice.mp3"),
-        ("percent_encoded", "file:///Users/me/my%20voice.mp3", "/Users/me/my voice.mp3"),
-        ("localhost", "file://localhost/Users/me/voice.mp3", "/Users/me/voice.mp3"),
+        ("windows_naive", "file://C:\\Media\\voice.mp3", "C:\\Media\\voice.mp3"),
+        ("percent_encoded", "file:///opt/media/my%20voice.mp3", "/opt/media/my voice.mp3"),
+        ("localhost", "file://localhost/opt/media/voice.mp3", "/opt/media/voice.mp3"),
     ],
 )
 def test_file_uri_to_raw_path(label, uri, expected):

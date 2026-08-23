@@ -43,11 +43,11 @@ These upstream skills are HF-workflow-specific and would compete with or duplica
 To re-vendor from a newer upstream:
 
 ```bash
-cd C:/Users/ishan/Documents/hyperframes
+cd "$HYPERFRAMES_REPO"
 git pull --ff-only origin main
 # Then in OpenMontage:
-cd /c/Users/ishan/Documents/OpenMontage
-HF=C:/Users/ishan/Documents/hyperframes
+cd "$OPENMONTAGE_REPO"
+HF="$HYPERFRAMES_REPO"
 for d in hyperframes hyperframes-cli hyperframes-registry hyperframes-core \
          hyperframes-creative hyperframes-media hyperframes-animation \
          media-use motion-graphics remotion-to-hyperframes \

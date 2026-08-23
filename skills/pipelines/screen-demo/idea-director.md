@@ -18,12 +18,55 @@ Use this pipeline whenever the deliverable is a screen-recording-style demo. The
 
 | Mode | Source material | Pick when |
 |---|---|---|
-| **`real_capture`** | An actual screen recording (MP4) captured via `screen_recorder`, `cap_recorder`, or `playwright-recording` | Real app UI, live behavior, browser flows, IDE plugins, user asked for their own screen |
+| **`real_capture`** | An actual screen recording (staged as MP4) captured via `recordly_recorder`, `screen_recorder`, `cap_recorder`, or `playwright-recording` | Real app UI, live behavior, browser flows, IDE plugins, user asked for their own screen |
 | **`synthetic_terminal`** | None — nothing is captured. You author a `terminal_scene` cut for Remotion | CLI / terminal / install flow / make targets / git clone / API key config — anything scriptable where every command and output is predictable |
 
 **Decision question:** *"Can I predict every command and its output before shooting?"* If yes → synthetic. If no → real capture.
 
 **Record the mode in `brief.metadata.production_mode`.** The asset-director reads this field to choose between capture+overlay assets vs a `steps` list paced with narration.
+
+### Recordly is an external manual-capture backend
+
+For a product UI recording, use `screen_capture_selector` at preflight and
+present Recordly alongside every other actually available capture backend. If
+the user selects Recordly:
+
+1. Run `recordly_recorder` with `operation="doctor"`. If it is absent or the
+   platform is unsupported, that blocks a **new local Recordly recording**, so
+   present setup guidance and do not silently switch to FFmpeg or Cap. It does
+   not block a portable handoff: if the user already has an explicit Recordly-
+   exported MP4 and ffprobe is available, the adapter may still ingest and
+   verify that selected file without launching the app.
+2. Explain that OpenMontage does not drive Recordly's recording controls. The
+   user records in the external Recordly UI and explicitly returns when done.
+3. Only after the user identifies the completed recording, use the adapter's
+   `ingest` and `verify` operations to create a portable
+   `ScreenCapturePackage@1.0` inside the project.
+4. Resolve the normalized MP4 relative to the directory containing
+   `screen_capture_package.json`. When adding it to `asset_manifest`, record a
+   separate project-relative asset path. Never make the raw
+   machine-specific `.recordly` editor project, absolute `videoPath`, private
+   session file, or recording diagnostics a pipeline dependency. Do not depend
+   on undocumented test-only export hooks as a production interface.
+
+Recordly is an optional backend for the existing `real_capture` mode. Its
+presence does not change the default decision between `real_capture` and
+`synthetic_terminal`.
+
+### Privacy consent before real capture
+
+Before opening any real capture application, ask the user to confirm the
+capture surface and remind them to:
+
+- use a demo/test account and synthetic product data where possible,
+- close private tabs and disable notifications,
+- keep passwords, API keys, payment data, health data, and unpublished product
+  information out of the capture,
+- explicitly choose whether microphone and camera should be enabled.
+
+Record this decision in `decision_log`. A newly ingested real capture begins
+with `screen_capture_package.privacy_review.status="pending"`; ingestion alone
+is never evidence that the footage is safe to publish.
 
 For `synthetic_terminal`, also read `.agents/skills/synthetic-screen-recording/SKILL.md` before proceeding — it encodes the pacing rule that killed an earlier showcase render (commands burned through in 40% of scene time, then terminal froze for the remaining 60%).
 
@@ -98,7 +141,7 @@ Use the schema fields for the concise creative contract and store the richer pro
 
 Recommended `metadata` keys:
 
-- `source_path`
+- `source_relative_path`
 - `source_duration_seconds`
 - `source_resolution`
 - `has_voiceover`
@@ -108,6 +151,9 @@ Recommended `metadata` keys:
 - `dead_time_segments`
 - `recommended_aspect_ratios`
 - `notes_for_scene_planner`
+- `capture_backend`
+- `screen_capture_package_ref`
+- `capture_privacy_consent`
 
 The brief should answer:
 
@@ -126,6 +172,8 @@ Before checkpointing, verify:
 - the target platform matches the UI density,
 - the brief names the actual software rather than describing it vaguely,
 - the metadata gives downstream stages enough production truth.
+- a real capture has an explicit backend choice, a schema-valid portable
+  `screen_capture_package`, and a privacy review plan.
 
 ## Common Pitfalls
 

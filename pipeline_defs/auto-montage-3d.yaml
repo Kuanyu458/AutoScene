@@ -1,0 +1,207 @@
+name: auto-montage-3d
+version: "1.0"
+description: >
+  Beta prepared-footage montage pipeline driven by one music timing map. It
+  combines source shot windows with deterministic, pre-rendered procedural 3D
+  inserts and produces a frame-accurate beat or phrase aligned final edit.
+category: montage
+stability: beta
+default_checkpoint_policy: guided
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: true
+
+required_skills:
+  - pipelines/auto-montage-3d/research-director
+  - pipelines/auto-montage-3d/proposal-director
+  - pipelines/auto-montage-3d/scene-director
+  - pipelines/auto-montage-3d/asset-director
+  - pipelines/auto-montage-3d/edit-director
+  - pipelines/auto-montage-3d/compose-director
+  - pipelines/auto-montage-3d/publish-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+compatible_playbooks:
+  recommended:
+    - flat-motion-graphics
+    - clean-professional
+  also_works:
+    - minimalist-diagram
+  custom_allowed: true
+
+stages:
+  - name: research
+    skill: pipelines/auto-montage-3d/research-director
+    optional_artifacts_in:
+      - montage_request
+    produces:
+      - research_brief
+      - source_media_review
+      - music_timing_map
+      - montage_request
+    required_tools:
+      - music_sync_analyzer
+      - scene_detect
+    optional_tools:
+      - video_analyzer
+      - frame_sampler
+    tools_available:
+      - music_sync_analyzer
+      - scene_detect
+      - video_analyzer
+      - frame_sampler
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Source files were copied and hash-verified without modifying the input folder
+      - Every video has candidate shot windows and representative frames
+      - Music was analyzed exactly once into MusicTimingMap@1.0
+      - Weak rhythm is labelled phrase_flow, never presented as a reliable beat grid
+    success_criteria:
+      - Schema-valid research_brief, montage_request, source_media_review, and music_timing_map
+      - All source hashes match their staged copies
+
+  - name: proposal
+    skill: pipelines/auto-montage-3d/proposal-director
+    required_artifacts_in:
+      - research_brief
+    optional_artifacts_in:
+      - source_media_review
+      - music_timing_map
+      - montage_request
+    produces:
+      - proposal_packet
+      - decision_log
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Beat policy resolves from the measured grid confidence
+      - 3D count follows clamp(ceil(duration/20), 1, 3) when enabled
+      - Final runtime and composition mode are explicitly presented and logged
+      - Music offset is explicit when a phrase-bounded 60-second window is selected
+    success_criteria:
+      - Schema-valid proposal_packet with beat_sync_policy and three_d_plan
+      - User approved runtime, composition mode, cost, and insertion plan
+
+  - name: scene_plan
+    skill: pipelines/auto-montage-3d/scene-director
+    required_artifacts_in:
+      - proposal_packet
+    optional_artifacts_in:
+      - source_media_review
+      - music_timing_map
+    produces:
+      - scene_plan
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Ordered slots tile the approved duration
+      - Source windows are unique and long enough for their slots
+      - 3D slots span 2-4 bars and land on phrase, drop, or hard-stop anchors
+    success_criteria:
+      - Schema-valid scene_plan with source and procedural_3d scenes
+      - Every 3D scene has a template, seed, duration_frames, anchor, and cue frames
+
+  - name: assets
+    skill: pipelines/auto-montage-3d/asset-director
+    required_artifacts_in:
+      - scene_plan
+    optional_artifacts_in:
+      - music_timing_map
+      - proposal_packet
+    produces:
+      - asset_manifest
+      - three_scene_package
+    required_tools:
+      - remotion_three_scene
+    tools_available:
+      - remotion_three_scene
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Every planned 3D insert rendered with the locked angle backend
+      - Package hashes, preview frames, cue frames, and provenance validate
+      - No remote assets, wall-clock animation, or silent 3D disable occurred
+    success_criteria:
+      - Schema-valid asset_manifest and three_scene_package artifacts
+      - Every procedural_3d asset is a non-black H.264 MP4
+
+  - name: edit
+    skill: pipelines/auto-montage-3d/edit-director
+    required_artifacts_in:
+      - scene_plan
+      - asset_manifest
+    optional_artifacts_in:
+      - music_timing_map
+      - proposal_packet
+    produces:
+      - edit_decisions
+    required_tools:
+      - beat_cut_planner
+    tools_available:
+      - beat_cut_planner
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - TimelineV2 uses integer frames and has no gap or overlap
+      - Source media is not repeated, frozen, or speed-adjusted without approval
+      - Cut anchors follow section quotas and the resolved pacing policy
+    success_criteria:
+      - Schema-valid edit_decisions@2.0
+      - All source ranges fit their files and all runtime adapters agree
+
+  - name: compose
+    skill: pipelines/auto-montage-3d/compose-director
+    required_artifacts_in:
+      - edit_decisions
+      - asset_manifest
+    optional_artifacts_in:
+      - proposal_packet
+      - music_timing_map
+      - scene_plan
+    produces:
+      - render_report
+      - final_review
+    required_tools:
+      - video_compose
+      - audio_mixer
+    tools_available:
+      - video_compose
+      - audio_mixer
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Locked Remotion runtime and composition mode were preserved
+      - Final media is 1920x1080 at 30fps with H.264 video and AAC music
+      - Beat alignment, A/V drift, 3D inserts, black frames, and missing assets pass
+      - No runtime or 3D fallback occurred
+    success_criteria:
+      - Schema-valid render_report and final_review
+      - Duration is within one frame and rendered p95 anchor error is at most two frames
+
+  - name: publish
+    skill: pipelines/auto-montage-3d/publish-director
+    required_artifacts_in:
+      - render_report
+      - final_review
+    optional_artifacts_in:
+      - proposal_packet
+      - montage_request
+    produces:
+      - publish_log
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Only local deliverables are packaged; no external publishing is implied
+      - Source hashes and runtime decisions remain traceable in the summary
+      - Beta status and any unverified platform claims are explicit
+    success_criteria:
+      - Schema-valid publish_log
+      - Final MP4, contact sheet, artifacts, and run summary are present
