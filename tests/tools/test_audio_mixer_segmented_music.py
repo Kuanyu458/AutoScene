@@ -4,9 +4,9 @@
 `amix=inputs=2`, whose default `normalize=1` divides every input by the input
 count (x0.5 / -6 dB). Unlike `_mix` / `_full_mix`, this path has no `loudnorm`
 stage afterward, so the narration was permanently attenuated across the whole
-timeline — including stretches where the music volume expression is 0. The fix
-adds `normalize=0` (music is already scaled by the `volume` expression, so
-speech must pass at unity).
+timeline — including stretches where the music volume expression is 0. The
+portable fix compensates the default two-input normalization after `amix`,
+which also works on FFmpeg 4.3 before the `normalize` option existed.
 """
 
 import shutil
@@ -22,8 +22,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from tools.audio.audio_mixer import AudioMixer  # noqa: E402
 
 
-def test_segmented_music_amix_disables_normalize(tmp_path, monkeypatch):
-    """The generated amix must carry normalize=0 (offline, no ffmpeg)."""
+def test_segmented_music_amix_preserves_unity_speech_gain(tmp_path, monkeypatch):
+    """The generated two-input mix must restore unity speech gain."""
     video = tmp_path / "v.mp4"
     music = tmp_path / "m.wav"
     video.write_bytes(b"stub")
@@ -57,7 +57,9 @@ def test_segmented_music_amix_disables_normalize(tmp_path, monkeypatch):
     assert ffmpeg_cmds, "no ffmpeg command was built"
     fc = ffmpeg_cmds[0][ffmpeg_cmds[0].index("-filter_complex") + 1]
     assert "amix=inputs=2" in fc
-    assert "normalize=0" in fc, f"amix must disable normalize; got: {fc}"
+    assert "[mixed]volume=2[aout]" in fc, (
+        f"amix's default 0.5 gain must be compensated; got: {fc}"
+    )
 
 
 @pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg required")

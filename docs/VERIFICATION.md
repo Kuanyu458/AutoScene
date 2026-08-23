@@ -1,18 +1,22 @@
-# OpenMontage Beat3D beta verification record
+# AutoScene v0.2.0 beta local verification record
 
 Verification date: 2026-08-24
 
-This record distinguishes local runtime evidence from GitHub publication and
-cross-platform claims. It is evidence for a source-checkout release candidate,
-not evidence that a remote repository, branch, pull request, tag, or GitHub
-Actions run exists.
+This record distinguishes local runtime evidence, live repository settings,
+and cross-platform claims. The verified checkout is the retained-history fork
+`Kuanyu458/AutoScene` on local branch `codex/autoscene-beat3d-recordly`.
+
+Git provenance was checked before import: the reconstructed source delta maps
+to upstream commit `80e51fd6181736e856a138eaac1cbbb36dac54ab` and was integrated
+onto fork/upstream `main` commit
+`cd9f3c1f03368be87b140af494914b8ee4e3c7a4`. See `UPSTREAM.md`.
 
 ## Verified environment
 
 | Component | Verified value |
 |---|---|
 | Host | macOS, Apple Silicon (`arm64`) |
-| Python | 3.13.5 in the bootstrap-managed `.venv` |
+| Python | 3.13.7 in the bootstrap-managed `.venv` |
 | Node.js / npm | 22.22.3 / 10.9.8 |
 | FFmpeg / ffprobe | 4.3.2 |
 | Remotion family | 4.0.484 |
@@ -23,16 +27,23 @@ Actions run exists.
 ## Gates passed
 
 - bootstrap completed with its virtualenv-local npm cache;
-- `openmontage doctor` returned `READY` with no blockers;
+- `autoscene doctor` returned `READY` with no blockers (the `openmontage`
+  compatibility alias remains available);
 - `pip check` found no broken requirements;
-- complete Python regression: 438 passed, 10 intentionally skipped;
+- complete Python regression: 1,924 passed, 13 intentionally skipped, 3
+  expected failures, and 1 subtest passed;
 - TypeScript compiler: zero errors;
 - Remotion enumerated 14 compositions, including the 1920x1080, 30 fps,
   60-frame `ProceduralThree` smoke composition;
 - `npm audit --omit=dev --audit-level=high`: zero vulnerabilities after the
   reviewed exact transitive overrides in `docs/SECURITY_AUDIT.md`;
-- public-tree candidate: 1,917 files inspected, zero findings;
-- all GitHub workflow YAML parsed successfully.
+- public tracked tree: 2,174 files inspected, zero findings;
+- both GitHub workflow YAML files parsed successfully;
+- full-history high-signal scan found no private key, GitHub token, or AWS key
+  pattern. The sole OpenAI-shaped match is an intentionally synthetic network-
+  guard fixture retained in upstream test history; it is split in the current
+  tree. GitHub secret scanning and push protection are enabled with zero open
+  secret-scanning alerts.
 
 ## Real macOS workflow evidence
 
@@ -52,7 +63,7 @@ The test verified:
 - audio/video start drift at most 100 ms;
 - non-black 3D preview samples and schema-valid artifacts.
 
-Result: 1 passed.
+Result: 1 passed in 25.94 seconds on the verified host.
 
 ## Recordly bridge evidence
 
@@ -75,13 +86,20 @@ Local doctor result:
 - explicit exported-MP4 ingestion: ready because ffprobe is available;
 - default capture recommendation: FFmpeg, preserving existing behavior.
 
+## Live repository settings verified
+
+- public repository: <https://github.com/Kuanyu458/AutoScene>;
+- Issues, private vulnerability reporting, Dependabot security updates,
+  dependency alerts, secret scanning, and push protection are enabled;
+- the repository description is AutoScene-specific and no longer claims the
+  upstream website as its homepage.
+
 ## Explicitly not yet verified
 
-- The current workspace arrived without `.git`; repository history, a remote,
-  previously committed secrets, and an exact upstream base commit were not
-  available for audit.
-- Ubuntu and Windows workflows are authored contract gates but have not run on
-  GitHub Actions from this workspace.
+- The feature branch, Draft PR, and GitHub Actions status are intentionally
+  verified during the publication step after this local record is committed.
+- Ubuntu and Windows behavior is covered by authored Actions jobs but is not a
+  local live-runtime claim. Treat the Draft PR checks as the current evidence.
 - Linux and Windows live WebGL render parity is not claimed.
 - HyperFrames remains optional and unavailable for live parity; the accepted
   beta E2E renderer is Remotion.
@@ -91,5 +109,5 @@ Local doctor result:
   external-app integration is verified at adapter, real-media ingest, schema,
   pipeline, and privacy-contract levels only.
 
-Follow `docs/RELEASING.md` from a real upstream fork before publishing or
-tagging a release.
+Do not tag a release until the Draft PR checks are green and their exact head
+commit has been re-queried. Follow `docs/RELEASING.md`.

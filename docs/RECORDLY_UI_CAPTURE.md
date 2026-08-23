@@ -1,20 +1,20 @@
 # Recordly UI capture bridge
 
-OpenMontage can use [Recordly](https://github.com/webadderallorg/Recordly) as
+AutoScene can use [Recordly](https://github.com/webadderallorg/Recordly) as
 an optional desktop recorder and editor for real product UI demos. Recordly is
-installed and operated separately; OpenMontage does not vendor, fork, bundle,
+installed and operated separately; AutoScene does not vendor, fork, bundle,
 or automate its Electron application.
 
 This bridge is intentionally split into two responsibilities:
 
 1. Recordly records and edits the real UI session in its own visible desktop
    interface.
-2. OpenMontage imports an explicitly selected MP4, verifies it, copies it into
+2. AutoScene imports an explicitly selected MP4, verifies it, copies it into
    the project without changing the source, and feeds it to the `screen-demo`
    pipeline as a normal video asset.
 
 The result is usable on another computer without making Recordly a Python or
-Node dependency of OpenMontage.
+Node dependency of AutoScene.
 
 ## Supported workflow
 
@@ -25,7 +25,7 @@ Node dependency of OpenMontage.
 3. Record the product workflow, then apply Recordly's cursor treatment, zooms,
    framing, annotations, and trims.
 4. Export an MP4 to a path you choose.
-5. Ask the OpenMontage agent to use `screen-demo` with
+5. Ask the AutoScene agent to use `screen-demo` with
    `production_mode=real_capture` and `capture_backend=recordly`, then provide
    that exact MP4 path for `recordly_recorder` ingestion.
 6. Review the privacy report. Publishing is blocked while any sensitive region
@@ -60,7 +60,7 @@ for deterministic browser-only flows.
 The canonical package stores an MP4 path relative to the directory containing
 `screen_capture_package.json`, plus its SHA-256 hash, technical probe, capture
 backend, upstream provenance, source-mutation check, and privacy review. The
-asset manifest separately records the path relative to the OpenMontage project.
+asset manifest separately records the path relative to the AutoScene project.
 Neither artifact persists the user's original absolute input path.
 
 Recordly's `.recordly` project format is not the portable handoff contract. At
@@ -76,14 +76,14 @@ publish, the `final_review.checks.privacy` result must be `pass`, every declared
 sensitive region must be resolved by masking, exclusion, or a confirmed
 non-sensitive classification, and `unresolved_items` must be empty.
 
-OpenMontage does not scan the user's home directory or Recordly's private
+AutoScene does not scan the user's home directory or Recordly's private
 application-data directory to guess which recording to use. The MP4 must be
 selected explicitly. Ingestion copies; it never moves, edits, or deletes the
 source.
 
 ## Platform notes
 
-| Platform | Recordly upstream requirement | OpenMontage contract |
+| Platform | Recordly upstream requirement | AutoScene contract |
 |---|---|---|
 | macOS | macOS 14+; Screen Recording and related permissions are user-controlled | app detection plus explicit MP4 ingestion |
 | Windows | Windows 10 build 19041+ recommended by upstream | install-path contract plus explicit MP4 ingestion |
@@ -99,9 +99,9 @@ The integration was designed against Recordly commit
 [`72e9724505e2498fd85754cfe69e02d8a69900a0`](https://github.com/webadderallorg/Recordly/commit/72e9724505e2498fd85754cfe69e02d8a69900a0).
 Recordly is an external AGPLv3 project with project-specific attribution and
 branding terms in its own license file. No Recordly source code or branding is
-copied into OpenMontage, and this project is not affiliated with or endorsed by
+copied into AutoScene, and this project is not affiliated with or endorsed by
 Recordly. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
 The inspected upstream tree contains private smoke-export environment variables,
-but no documented stable headless API. OpenMontage deliberately does not depend
+but no documented stable headless API. AutoScene deliberately does not depend
 on that test-only interface.

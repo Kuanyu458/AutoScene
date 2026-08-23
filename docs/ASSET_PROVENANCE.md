@@ -1,6 +1,6 @@
 # Asset provenance policy
 
-OpenMontage source, runtime dependencies, user media, and generated output are
+AutoScene source, runtime dependencies, user media, and generated output are
 four different licensing domains. Do not collapse them into one license claim.
 
 ## Public source tree
@@ -8,8 +8,8 @@ four different licensing domains. Do not collapse them into one license claim.
 - `assets/` and the inherited `.agents/skills/` tree originate from the
   upstream OpenMontage distribution unless a closer provenance file says
   otherwise.
-- A derivative release should preserve upstream Git history rather than copy
-  those files into a history-free repository.
+- This derivative preserves upstream Git history and documents its source-delta
+  base plus integration target in `UPSTREAM.md`.
 - Root demonstration media is not required by `auto-montage-3d`. New Beat3D
   examples must be generated locally through
   `examples/auto-montage-3d/create_demo_inputs.py` instead of adding media.

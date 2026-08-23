@@ -169,6 +169,7 @@ def test_screen_capture_package_round_trips_as_supplementary_idea_artifact(tmp_p
             "screen_capture_package": _capture_package(),
         },
         pipeline_type="screen-demo",
+        human_approved=True,
     )
 
     checkpoint = read_checkpoint(tmp_path, "recordly-demo", "idea")

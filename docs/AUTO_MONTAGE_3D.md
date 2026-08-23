@@ -1,6 +1,6 @@
 # Auto Montage 3D pipeline contract
 
-`auto-montage-3d` is a beta OpenMontage pipeline for prepared media folders.
+`auto-montage-3d` is a beta AutoScene pipeline for prepared media folders.
 It intentionally excludes long-form ASR/MLLM semantic shot selection.
 
 ## Input contract
@@ -13,7 +13,8 @@ It intentionally excludes long-form ASR/MLLM semantic shot selection.
 - at least one video or image;
 - default 1920×1080, 30 fps, adaptive timing, and 3D enabled.
 
-`openmontage init` is the public seam. Discovery priority is explicit path,
+`autoscene init` is the primary public seam; `openmontage init` remains a
+compatibility alias. Discovery priority is explicit path,
 conventional filename, then a unique matching file. Inputs are copied into a
 fresh project and hash-verified; explicit slug collisions fail.
 
@@ -97,13 +98,13 @@ choice. Compose must preserve it. Missing runtime/GL support or 3D render
 failure is a structured blocker; silent fallback is forbidden.
 
 Remotion is the only live E2E-verified renderer for v1. HyperFrames remains an
-optional OpenMontage runtime and is not claimed as live Beat3D parity here.
+optional inherited runtime and is not claimed as live Beat3D parity here.
 
 ## Methodology and CutClaw boundary
 
 The design cites CutClaw's public discussion of music structure,
 section-aware allocation, and review, plus its paper. The implementation is an
-independent native planner with OpenMontage contracts.
+independent native planner with AutoScene contracts.
 
 - snapshot: <https://github.com/GVCLab/CutClaw/commit/db48d08b0d48881df0dda0b207b6873148c88077>
 - paper: <https://arxiv.org/abs/2603.29664>
