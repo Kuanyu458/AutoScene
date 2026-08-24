@@ -5,9 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Have an idea? If it's open-ended or you want to discuss direction first, consider posting in
-        [Discussions → Ideas](https://github.com/calesthio/OpenMontage/discussions/categories/ideas).
-        Use this form for a concrete, actionable request.
+        Use this form for a concrete, reproducible AutoScene request.
+        Do not attach private media, project artifacts, or credentials.
   - type: textarea
     id: problem
     attributes:

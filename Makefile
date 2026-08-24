@@ -1,4 +1,4 @@
-PYTHON_VERSION ?= 3.10
+PYTHON_VERSION ?= 3.12
 VENV_DIR ?= .venv
 BASE_PYTHON ?= $(shell command -v python$(PYTHON_VERSION) 2>/dev/null || command -v python3 2>/dev/null || command -v python 2>/dev/null)
 RUN_PYTHON = $(shell for dir in "$$VIRTUAL_ENV" "$$CONDA_PREFIX" "$(VENV_DIR)"; do if [ -n "$$dir" ] && [ -x "$$dir/bin/python" ]; then printf "%s/bin/python" "$$dir"; exit 0; elif [ -n "$$dir" ] && [ -x "$$dir/Scripts/python.exe" ]; then printf "%s/Scripts/python.exe" "$$dir"; exit 0; fi; done; if [ "$(OS)" = "Windows_NT" ]; then printf "%s/Scripts/python.exe" "$(VENV_DIR)"; else printf "%s/bin/python" "$(VENV_DIR)"; fi)
@@ -6,7 +6,7 @@ PIP = $(RUN_PYTHON) -m pip
 
 .DEFAULT_GOAL := setup
 
-.PHONY: setup install install-dev install-gpu test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv
+.PHONY: setup install install-dev install-gpu test test-contracts lint clean preflight doctor verify-release demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv
 
 # ---- Virtual environment ----
 
@@ -53,10 +53,10 @@ venv: ensure-venv
 
 setup: ensure-venv
 	@echo "==> Installing Python dependencies..."
-	$(PIP) install -r requirements.txt
+	$(PIP) install -e .
 	@echo ""
 	@echo "==> Installing Remotion composer..."
-	cd remotion-composer && npm install
+	cd remotion-composer && npm ci --no-audit --no-fund
 	@echo ""
 	@echo "==> Installing free offline TTS (Piper)..."
 	$(PIP) install piper-tts || echo "  [skip] piper-tts install failed — TTS will use cloud providers instead"
@@ -74,14 +74,16 @@ setup: ensure-venv
 	@echo "  Optional: run 'make install-gpu' if you have an NVIDIA GPU."
 	@echo "  Optional: run 'make hyperframes-doctor' to fully validate the HyperFrames runtime."
 	@echo "  Optional: run 'make hyperframes-warm' anytime to refresh the npx cache to the latest hyperframes version."
+	@echo ""
+	$(RUN_PYTHON) -m openmontage doctor
 
 # ---- Individual installs ----
 
 install: ensure-venv
-	$(PIP) install -r requirements.txt
+	$(PIP) install -e .
 
 install-dev: ensure-venv
-	$(PIP) install -r requirements-dev.txt
+	$(PIP) install -e ".[dev]"
 
 install-gpu: ensure-venv
 	$(PIP) install -r requirements-gpu.txt
@@ -99,6 +101,17 @@ test-contracts: ensure-venv
 
 preflight: ensure-venv
 	$(RUN_PYTHON) -c "from tools.tool_registry import registry; import json; registry.discover(); print(json.dumps(registry.provider_menu(), indent=2))"
+
+doctor: ensure-venv
+	$(RUN_PYTHON) -m openmontage doctor
+
+verify-release: ensure-venv
+	$(RUN_PYTHON) scripts/check_public_tree.py
+	$(PIP) check
+	$(RUN_PYTHON) -m openmontage doctor
+	$(RUN_PYTHON) -m pytest -q
+	npm run typecheck --prefix remotion-composer
+	npm audit --prefix remotion-composer --omit=dev --audit-level=high
 
 hyperframes-doctor: ensure-venv
 	@echo "==> Probing HyperFrames runtime (node/ffmpeg/npx + hyperframes doctor)..."

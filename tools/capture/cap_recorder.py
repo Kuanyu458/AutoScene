@@ -250,9 +250,13 @@ class CapRecorder(BaseTool):
     fallback_tools = ["screen_recorder"]
 
     def get_status(self):
-        """Cap tool is always 'available' — it gracefully handles missing Cap."""
+        """Report availability from the installed application, not guidance support."""
         from tools.base_tool import ToolStatus
-        return ToolStatus.AVAILABLE
+        return (
+            ToolStatus.AVAILABLE
+            if _find_cap_binary() is not None
+            else ToolStatus.UNAVAILABLE
+        )
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         operation = inputs["operation"]

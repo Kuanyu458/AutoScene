@@ -330,6 +330,31 @@
       },
       "additionalProperties": false
     },
+    "beat_sync_policy": {
+      "type": "object",
+      "required": ["requested", "resolved", "grid_reliable", "confidence_threshold"],
+      "properties": {
+        "requested": {"type": "string", "enum": ["adaptive", "beat_cut", "phrase_flow"]},
+        "resolved": {"type": "string", "enum": ["beat_cut", "phrase_flow"]},
+        "grid_reliable": {"type": "boolean"},
+        "confidence_threshold": {"type": "number", "const": 0.6},
+        "music_offset_seconds": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "three_d_plan": {
+      "type": "object",
+      "required": ["enabled", "runtime", "backend", "scene_count", "templates", "fallback_policy"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "runtime": {"type": "string", "const": "remotion-three"},
+        "backend": {"type": "string", "const": "angle"},
+        "scene_count": {"type": "integer", "minimum": 0, "maximum": 3},
+        "templates": {"type": "array", "items": {"type": "string", "enum": ["ui-depth-stack", "orbital-reveal", "data-constellation"]}},
+        "fallback_policy": {"type": "string", "const": "block_no_silent_disable"}
+      },
+      "additionalProperties": false
+    },
     "metadata": { "type": "object" }
   },
   "$defs": {

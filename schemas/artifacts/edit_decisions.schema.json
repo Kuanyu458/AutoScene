@@ -6,17 +6,56 @@
   "type": "object",
   "required": ["version", "cuts", "render_runtime"],
   "properties": {
-    "version": { "type": "string", "const": "1.0" },
+    "version": { "type": "string", "enum": ["1.0", "2.0"] },
+    "artifact_type": { "type": "string", "enum": ["TimelinePlan"] },
+    "fps": { "type": "integer", "minimum": 1 },
+    "total_frames": { "type": "integer", "minimum": 1 },
     "cuts": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "source", "in_seconds", "out_seconds"],
+        "required": ["id", "source"],
         "properties": {
           "id": { "type": "string" },
-          "source": { "type": "string", "description": "Source file path or asset-manifest ID" },
+          "source": {
+            "oneOf": [
+              { "type": "string", "description": "Legacy source file path or asset-manifest ID" },
+              {
+                "type": "object",
+                "required": ["ref", "in_frame", "out_frame"],
+                "properties": {
+                  "ref": { "type": "string" },
+                  "in_frame": { "type": "integer", "minimum": 0 },
+                  "out_frame": { "type": "integer", "minimum": 1 }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
           "in_seconds": { "type": "number", "minimum": 0 },
           "out_seconds": { "type": "number", "minimum": 0 },
+          "source_in_seconds": { "type": "number", "minimum": 0 },
+          "timeline": {
+            "type": "object",
+            "required": ["start_frame", "end_frame"],
+            "properties": {
+              "start_frame": { "type": "integer", "minimum": 0 },
+              "end_frame": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": false
+          },
+          "anchor": {
+            "type": "object",
+            "required": ["id", "type", "target_frame", "error_frames"],
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string", "enum": ["beat", "downbeat", "onset", "pitch_change", "energy_change", "phrase", "hard_stop"] },
+              "target_frame": { "type": "integer", "minimum": 0 },
+              "error_frames": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "presentation": { "type": "object" },
           "speed": { "type": "number", "minimum": 0.1, "default": 1.0 },
           "layer": {
             "type": "string",
@@ -63,6 +102,16 @@
           },
           "reason": { "type": "string" }
         },
+        "allOf": [
+          {
+            "if": { "properties": { "source": { "type": "string" } } },
+            "then": { "required": ["in_seconds", "out_seconds"] }
+          },
+          {
+            "if": { "properties": { "source": { "type": "object" } } },
+            "then": { "required": ["timeline"] }
+          }
+        ],
         "additionalProperties": false
       }
     },
@@ -230,6 +279,31 @@
         "average": { "type": "number" },
         "verdict": { "type": "string", "enum": ["strong", "acceptable", "revise", "fail"] }
       }
+    },
+    "music_sync": {
+      "type": "object",
+      "required": ["policy", "grid_reliable", "anchor_coverage", "median_error_frames", "p95_error_frames", "max_error_frames"],
+      "properties": {
+        "policy": { "type": "string", "enum": ["adaptive", "beat_cut", "phrase_flow", "legacy_unsynced"] },
+        "requested_policy": { "type": "string" },
+        "grid_reliable": { "type": "boolean" },
+        "timing_map_sha256": { "type": "string" },
+        "anchored_cuts": { "type": "integer", "minimum": 0 },
+        "anchor_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "median_error_frames": { "type": "number", "minimum": 0 },
+        "p95_error_frames": { "type": "number", "minimum": 0 },
+        "max_error_frames": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "planner_metrics": { "type": "object" },
+    "normalization": {
+      "type": "object",
+      "properties": {
+        "from_version": { "type": "string" },
+        "legacy_semantics": { "type": "string" }
+      },
+      "additionalProperties": false
     },
     "metadata": { "type": "object" }
   },

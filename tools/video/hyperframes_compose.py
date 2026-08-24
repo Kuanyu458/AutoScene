@@ -38,6 +38,7 @@ from tools.base_tool import (
     ToolStatus,
     ToolTier,
 )
+from lib.edit_timeline import TimelineContractError, adapt_timeline_for_runtime
 
 
 log = logging.getLogger("hyperframes_compose")
@@ -458,6 +459,14 @@ class HyperFramesCompose(BaseTool):
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         operation = inputs["operation"]
+        if operation == "render" and (inputs.get("edit_decisions") or {}).get("version") == "2.0":
+            try:
+                inputs = dict(inputs)
+                inputs["edit_decisions"] = adapt_timeline_for_runtime(
+                    inputs["edit_decisions"], "hyperframes"
+                )
+            except TimelineContractError as exc:
+                return ToolResult(success=False, error=f"TimelineV2 contract invalid: {exc}")
         start = time.time()
         try:
             if operation == "doctor":
@@ -1311,10 +1320,12 @@ class HyperFramesCompose(BaseTool):
 
         if ext in _VIDEO_EXTENSIONS and src_path:
             rel = self._rel_from_workspace(str(src_path))
+            media_start = float(cut.get("source_in_seconds", 0) or 0)
             html = (
                 f'<video id="{cut_id}" class="clip video-clip" '
                 f'src="{self._escape_attr(rel)}" '
                 f'data-start="{self._f(in_s)}" data-duration="{self._f(duration)}" '
+                f'data-media-start="{self._f(media_start)}" '
                 f'data-track-index="1" muted playsinline></video>'
             )
             return html, None

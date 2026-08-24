@@ -45,6 +45,10 @@ SUPPLEMENTARY_ARTIFACTS = {
     "source_media_review",  # Required before first planning stage when user media exists
     "final_review",         # Required by compose stage before presenting to user
     "video_analysis_brief", # Reference-video grounding artifact carried alongside stages
+    "music_timing_map",     # Canonical single-pass music analysis for montage pipelines
+    "montage_request",      # Resolved, hashed input contract for montage pipelines
+    "three_scene_package",  # Verified procedural 3D render package from assets stage
+    "screen_capture_package",  # Verified portable real-UI capture imported at idea stage
 }
 
 

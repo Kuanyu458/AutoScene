@@ -1,0 +1,54 @@
+name: macOS Apple Silicon E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-arm64-e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  beat3d:
+    name: Real Remotion Beat3D render
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: remotion-composer/package-lock.json
+
+      - name: Verify host prerequisites
+        run: |
+          ffmpeg -version
+          ffprobe -version
+
+      - name: Install locked runtimes
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          npm ci --prefix remotion-composer --no-audit --no-fund
+
+      - name: Run public gates
+        run: |
+          python -m pip check
+          python -m openmontage doctor --json
+          npm run typecheck --prefix remotion-composer
+
+      - name: Render and verify the real workflow
+        env:
+          OPENMONTAGE_MACOS_E2E: "1"
+        run: python -m pytest -q -rs tests/e2e/test_auto_montage_3d_macos.py

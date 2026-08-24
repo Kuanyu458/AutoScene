@@ -733,13 +733,13 @@ class AudioMixer(BaseTool):
             f"volume='{vol_expr}':eval=frame[music_shaped];"
             f"[0:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[speech];"
             f"[music_shaped]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[music_fmt];"
-            # normalize=0: amix's default normalize=1 divides every input by the
-            # input count (here x0.5 / -6 dB), which would permanently attenuate
-            # the narration across the whole timeline — including stretches where
-            # the music volume expression is 0. The music is already scaled by the
-            # `volume` expression, so speech must pass at unity. Unlike _mix/
-            # _full_mix, this path has no loudnorm stage to mask the halving.
-            f"[speech][music_fmt]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[aout]"
+            # FFmpeg 4.3 predates amix's normalize option. Its default two-input
+            # normalization applies a 0.5 gain, so compensate with volume=2 after
+            # the mix. This is equivalent to normalize=0 for these equal-duration
+            # speech/music streams and preserves narration level across supported
+            # FFmpeg versions.
+            f"[speech][music_fmt]amix=inputs=2:duration=first:dropout_transition=2[mixed];"
+            f"[mixed]volume=2[aout]"
         )
 
         cmd = [

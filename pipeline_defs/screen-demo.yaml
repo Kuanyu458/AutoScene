@@ -1,9 +1,10 @@
 name: screen-demo
-version: "2.1"
+version: "2.2"
 description: >
   Screen recording pipeline. Two production modes:
     1. REAL CAPTURE — takes raw screen capture (app demo, browser walkthrough,
-       coding tutorial) via screen_recorder, cap_recorder, or playwright-recording
+       coding tutorial) via screen_capture_selector, screen_recorder,
+       cap_recorder, recordly_recorder, or playwright-recording
        and produces a polished demo video with callouts, zoom crops, subtitles,
        and cleaned audio.
     2. SYNTHETIC (Remotion TerminalScene) — for CLI/terminal/install-flow demos,
@@ -23,8 +24,8 @@ default_checkpoint_policy: guided
 production_modes:
   - name: real_capture
     description: "OS screen recording of a real desktop/browser session"
-    required_tools: [screen_recorder]
-    optional_tools: [cap_recorder]
+    required_tools: [screen_capture_selector]
+    optional_tools: [recordly_recorder, screen_recorder, cap_recorder]
     best_for:
       - Real app UIs (Figma, Photoshop, web apps with live state)
       - Demos that depend on unpredictable live behavior
@@ -77,19 +78,27 @@ compatible_playbooks:
 stages:
   - name: idea
     skill: pipelines/screen-demo/idea-director
+    optional_artifacts_in:
+      - screen_capture_package
     produces:
       - brief
       - decision_log
-    tools_available: []
+    tools_available:
+      - screen_capture_selector
+      - recordly_recorder
+      - screen_recorder
+      - cap_recorder
     checkpoint_required: true
     human_approval_default: true
     review_focus:
       - Brief accurately describes what the screen recording demonstrates
       - Target platform and duration are realistic
       - Callout strategy identified (what to highlight)
+      - Real captures have an explicit backend choice and pre-capture privacy plan
     success_criteria:
       - Schema-valid brief artifact
       - Brief references the provided screen recording footage
+      - When real_capture is staged through a capture adapter, ScreenCapturePackage is schema-valid and its MP4 path is relative to the package directory
 
   - name: script
     skill: pipelines/screen-demo/script-director
@@ -97,6 +106,7 @@ stages:
       - brief
     optional_artifacts_in:
       - source_media_review
+      - screen_capture_package
     produces:
       - script
     required_tools:
@@ -146,6 +156,7 @@ stages:
       - scene_plan
     optional_artifacts_in:
       - script
+      - screen_capture_package
     produces:
       - asset_manifest
     required_tools: []
@@ -167,6 +178,7 @@ stages:
       - Subtitle file exists and matches speech timing
       - Reusable callout overlays (arrows, highlights, masks) are prepared
       - Audio cleaned of keyboard noise and background hum
+      - Screen capture hash/provenance is preserved and sensitive regions are tracked without copying private recorder diagnostics
     success_criteria:
       - Schema-valid asset_manifest artifact
       - All referenced asset files exist on disk
@@ -198,6 +210,7 @@ stages:
       - asset_manifest
     optional_artifacts_in:
       - scene_plan
+      - screen_capture_package
     produces:
       - render_report
       - final_review
@@ -219,6 +232,7 @@ stages:
       - Output video is playable and crisp at target resolution
       - UI text remains readable after crops and scaling
       - Audio is clear with no keyboard/click noise
+      - "For real_capture, final_review.checks.privacy exists; unresolved_sensitive_regions is zero before status=pass"
       - "render_runtime in edit_decisions matches proposal_packet — silent swap is a CRITICAL governance violation"
       - "For synthetic UI/terminal demos, render_runtime='remotion' (TerminalScene) is preferred; render_runtime='hyperframes' is valid for custom HTML UIs — in that case, lint+validate must pass before render"
     success_criteria:
@@ -232,6 +246,7 @@ stages:
       - final_review
     optional_artifacts_in:
       - brief
+      - screen_capture_package
     produces:
       - publish_log
     tools_available: []
@@ -241,6 +256,8 @@ stages:
       - Metadata includes relevant software/tool keywords
       - Chapter markers align with workflow steps
       - Export package is complete
+      - Real-capture privacy review passed with zero unresolved sensitive regions
     success_criteria:
       - Schema-valid publish_log artifact
       - Export directory contains video, metadata, and thumbnail concept
+      - real_capture is blocked from publish unless final_review.checks.privacy.passed=true and unresolved_sensitive_regions=0

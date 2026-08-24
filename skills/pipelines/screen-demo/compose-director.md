@@ -21,8 +21,8 @@ Silent swaps between runtimes are CRITICAL governance violations. If the locked 
 
 | Layer | Resource | Purpose |
 |-------|----------|---------|
-| Schema | `schemas/artifacts/render_report.schema.json` | Artifact validation |
-| Prior artifacts | `state.artifacts["edit"]["edit_decisions"]`, `state.artifacts["assets"]["asset_manifest"]` | What to render |
+| Schema | `schemas/artifacts/render_report.schema.json`, `schemas/artifacts/final_review.schema.json`, `schemas/artifacts/screen_capture_package.schema.json` | Artifact validation |
+| Prior artifacts | `state.artifacts["edit"]["edit_decisions"]`, `state.artifacts["assets"]["asset_manifest"]`, optional `screen_capture_package` | What to render |
 | Tools | `video_compose`, `audio_mixer`, `video_trimmer` | Rendering capabilities |
 | Playbook | Active style playbook | Quality targets |
 
@@ -36,6 +36,14 @@ Prefer the simplest reliable render chain:
 - compose overlays and subtitles,
 - mix audio only as much as needed,
 - encode at a bitrate suitable for text-heavy content.
+
+For `production_mode="real_capture"`, resolve `video.relative_path` from the
+directory containing `screen_capture_package.json` and fail before rendering if
+the staged MP4 is missing, escapes that package directory, or no longer matches
+the SHA-256 in `ScreenCapturePackage@1.0`. The corresponding asset-manifest path
+remains project-relative. Recordly capture is an ordinary verified video asset
+after ingestion; the compose stage must not reopen its raw editor project or
+recover a machine-specific source path.
 
 ### 2. Choose Output Shapes Pragmatically
 
@@ -80,6 +88,38 @@ Use sharp scaling and avoid aggressive compression. Screen text is the first thi
 - [ ] No black frames or timing glitches
 - [ ] Subtitles do not sit on top of critical UI
 
+**Privacy checks for every real capture:**
+
+- [ ] Inspect the opening, ending, regular interval samples, and the start,
+      middle, and end of every declared sensitive frame range
+- [ ] Check mask entry/exit frames so a credential or notification does not
+      flash for one frame before or after the mask
+- [ ] Confirm every sensitive region is resolved and every required redaction is
+      visible in the rendered output—not merely present in the edit plan
+- [ ] Confirm review notes contain categories and frame ranges only, never the
+      captured secret or personal value
+
+Populate `final_review.checks.privacy` for `real_capture` with:
+
+```yaml
+required: true
+source_package_ref: artifacts/screen_capture_package.json
+reviewed_frames: 12
+sensitive_regions_detected: 2
+unresolved_sensitive_regions: 0
+redactions_verified: true
+passed: true
+issues: []
+```
+
+`final_review.status="pass"` is forbidden unless `privacy.passed=true`,
+`privacy.unresolved_sensitive_regions=0`, and
+`privacy.redactions_verified=true`. Missing privacy evidence, a failed hash,
+or even one unresolved frame makes the review `revise` or `fail` with
+`recommended_action="block"` or an appropriate revision action. Synthetic
+terminal/UI work may omit the privacy object because no user screen was
+captured.
+
 **Audio spot checks:**
 - [ ] Narration/voiceover is clear and consistent volume
 - [ ] Music, if used, is not competing with speech
@@ -91,9 +131,12 @@ Record important findings in:
 - `render_report.verification_notes`
 - `render_report.warnings`
 - `render_report.metadata.variant_notes`
+- `final_review.checks.privacy`
 
 ## Common Pitfalls
 
 - Rendering `9:16` versions that are technically exported but practically unreadable.
 - Encoding screen text with generic low-bitrate social defaults.
 - Letting decorative backgrounds or padding reduce usable UI area too far.
+- Passing a real capture because masks were planned without inspecting the
+  rendered mask boundaries.

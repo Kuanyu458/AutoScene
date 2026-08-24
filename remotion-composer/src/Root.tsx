@@ -16,6 +16,7 @@ import { ProductReveal, ProductRevealProps } from "./components/ProductReveal";
 import { CaptionOverlay, WordCaption } from "./components/CaptionOverlay";
 import { CollageBurst, CollageBurstProps } from "./CollageBurst";
 import { LyricOverlay, LyricOverlayProps } from "./LyricOverlay";
+import { ProceduralThree, ProceduralThreeProps } from "./ProceduralThree";
 
 // ---------------------------------------------------------------------------
 // Theme System — prevents every video from looking like dark fintech
@@ -123,6 +124,9 @@ export function resolveTheme(props: Record<string, unknown>): ThemeConfig {
 const calculateMetadata: CalculateMetadataFunction<ExplainerProps> = async ({
   props,
 }) => {
+  if (props.timeline_version === "2.0" && typeof props.total_frames === "number") {
+    return {durationInFrames: Math.max(1, Math.round(props.total_frames))};
+  }
   const cuts = props.cuts || [];
   if (cuts.length === 0) {
     return { durationInFrames: 30 * 60 };
@@ -132,9 +136,48 @@ const calculateMetadata: CalculateMetadataFunction<ExplainerProps> = async ({
   return { durationInFrames: Math.ceil((lastEnd + 1) * 30) };
 };
 
+const proceduralThreeDefaultProps = {
+  sceneSpec: {
+    version: "1.0",
+    id: "three-smoke",
+    template_id: "orbital-reveal",
+    duration_frames: 60,
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    seed: 7,
+    theme: {
+      background: "#07111F",
+      primary: "#4CC9F0",
+      accent: "#F72585",
+      foreground: "#F8FAFC",
+    },
+    beat_cue_frames: [15, 30, 45],
+  },
+} satisfies ProceduralThreeProps;
+
+const calculateProceduralThreeMetadata: CalculateMetadataFunction<
+  ProceduralThreeProps
+> = ({ props }) => ({
+  durationInFrames: props.sceneSpec.duration_frames,
+  fps: props.sceneSpec.fps,
+  width: props.sceneSpec.width,
+  height: props.sceneSpec.height,
+});
+
 export const Root: React.FC = () => {
   return (
     <>
+      <Composition
+        id="ProceduralThree"
+        component={ProceduralThree}
+        durationInFrames={60}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={proceduralThreeDefaultProps}
+        calculateMetadata={calculateProceduralThreeMetadata}
+      />
       <Composition
         id="Explainer"
         component={Explainer}

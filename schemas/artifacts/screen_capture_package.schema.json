@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/screen_capture_package",
+  "title": "Screen Capture Package",
+  "description": "Portable, hash-verified staging contract for a real UI screen recording. File paths inside this artifact are resolved relative to the directory containing screen_capture_package.json. The package never embeds the recorder's machine-specific source path or private editor project.",
+  "type": "object",
+  "required": [
+    "version",
+    "package_id",
+    "backend",
+    "video",
+    "provenance",
+    "privacy_review"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "package_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"
+    },
+    "backend": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Capture/import backend, for example recordly, ffmpeg-native, cap, or playwright-recording."
+    },
+    "video": {
+      "type": "object",
+      "required": ["relative_path", "format", "sha256"],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.mp4$",
+          "description": "Path to the normalized staged MP4, relative to the directory containing screen_capture_package.json. Absolute paths and parent traversal are forbidden."
+        },
+        "format": {
+          "type": "string",
+          "const": "mp4"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "duration_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "has_audio": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sidecars": {
+      "type": "array",
+      "description": "Optional normalized sidecars. Raw editor/session and diagnostic files containing absolute paths are not portable package members.",
+      "items": {
+        "type": "object",
+        "required": ["role", "relative_path", "sha256"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["cursor", "session-normalized", "diagnostics-sanitized", "audio-system", "audio-microphone"]
+          },
+          "relative_path": {
+            "type": "string",
+            "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$",
+            "description": "Path relative to the directory containing screen_capture_package.json."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "source_tool",
+        "source_tool_version",
+        "capture_mode",
+        "source_sha256",
+        "originals_modified",
+        "absolute_source_path_included"
+      ],
+      "properties": {
+        "source_tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_tool_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capture_mode": {
+          "type": "string",
+          "enum": ["external_ui", "native", "browser_automation", "user_supplied"]
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "originals_modified": {
+          "type": "boolean",
+          "const": false
+        },
+        "absolute_source_path_included": {
+          "type": "boolean",
+          "const": false
+        },
+        "upstream_version": {
+          "type": "string"
+        },
+        "upstream_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "normalized_from_format": {
+          "type": "string",
+          "enum": ["mp4", "webm", "mov", "unknown"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "privacy_review": {
+      "type": "object",
+      "required": [
+        "status",
+        "reviewed",
+        "passed",
+        "sensitive_regions",
+        "unresolved_count",
+        "redactions_verified"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "passed", "blocked"]
+        },
+        "reviewed": {
+          "type": "boolean"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "sensitive_regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "start_frame", "end_frame", "kind", "action", "resolved"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start_frame": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end_frame": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "credential",
+                  "personal_data",
+                  "notification",
+                  "private_tab",
+                  "payment_data",
+                  "health_data",
+                  "confidential_product_data",
+                  "other"
+                ]
+              },
+              "action": {
+                "type": "string",
+                "enum": ["none", "blur", "crop", "cut", "replace"]
+              },
+              "resolved": {
+                "type": "boolean"
+              },
+              "normalized_bbox": {
+                "type": "object",
+                "required": ["x", "y", "width", "height"],
+                "properties": {
+                  "x": {"type": "number", "minimum": 0, "maximum": 1},
+                  "y": {"type": "number", "minimum": 0, "maximum": 1},
+                  "width": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+                  "height": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "unresolved_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "redactions_verified": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "privacy_review": {
+            "properties": {"status": {"const": "passed"}},
+            "required": ["status"]
+          }
+        },
+        "required": ["privacy_review"]
+      },
+      "then": {
+        "properties": {
+          "privacy_review": {
+            "properties": {
+              "reviewed": {"const": true},
+              "passed": {"const": true},
+              "unresolved_count": {"const": 0},
+              "redactions_verified": {"const": true},
+              "sensitive_regions": {
+                "items": {
+                  "properties": {"resolved": {"const": true}}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "privacy_review": {
+            "properties": {"status": {"enum": ["pending", "blocked"]}},
+            "required": ["status"]
+          }
+        },
+        "required": ["privacy_review"]
+      },
+      "then": {
+        "properties": {
+          "privacy_review": {
+            "properties": {"passed": {"const": false}}
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

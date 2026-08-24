@@ -57,6 +57,30 @@
       "type": "string",
       "description": "Path or inline reference to the final_review artifact produced by post-render self-review. Provides durable audit linkage between the render output and its quality inspection."
     },
+    "music_sync": {
+      "type": "object",
+      "required": ["anchor_coverage", "median_error_frames", "p95_error_frames", "max_error_frames", "av_drift_ms"],
+      "properties": {
+        "anchor_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "median_error_frames": {"type": "number", "minimum": 0},
+        "p95_error_frames": {"type": "number", "minimum": 0},
+        "max_error_frames": {"type": "number", "minimum": 0},
+        "av_drift_ms": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "procedural_3d": {
+      "type": "object",
+      "required": ["expected_inserts", "rendered_inserts", "black_frames_detected", "missing_assets", "backend"],
+      "properties": {
+        "expected_inserts": {"type": "integer", "minimum": 0},
+        "rendered_inserts": {"type": "integer", "minimum": 0},
+        "black_frames_detected": {"type": "boolean"},
+        "missing_assets": {"type": "boolean"},
+        "backend": {"type": "string", "enum": ["remotion-three-angle"]}
+      },
+      "additionalProperties": false
+    },
     "metadata": { "type": "object" }
   },
   "additionalProperties": false

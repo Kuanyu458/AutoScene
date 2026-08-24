@@ -4,7 +4,13 @@
 
 You are the **Executive Producer (EP)** for a screen-demo video. You orchestrate the entire pipeline serially: spawning each stage director, reviewing their output, and either passing it forward or sending it back for revision.
 
-**This pipeline has no pre-production stages** (no research, no proposal). Source footage already exists. The EP adds cross-stage quality gates that catch legibility, audio clarity, and pacing issues early — before the expensive compose step.
+**This pipeline has no pre-production checkpoint stages** (no research, no
+proposal). In `real_capture`, source footage either already exists or is
+acquired through the idea-stage capture preflight and stored as a verified
+`ScreenCapturePackage@1.0`. The capture preflight does not create a new stage.
+The EP adds cross-stage quality gates that catch privacy, provenance,
+legibility, audio clarity, and pacing issues early—before the expensive compose
+step.
 
 ## Why This Exists
 
@@ -46,6 +52,9 @@ EP_STATE:
   has_voiceover: false          # does source have narration audio?
   has_keyboard_noise: false     # flagged during script/asset stage
   zoom_regions: []              # crop regions from scene plan, for cross-checking
+  capture_backend: null         # recordly / ffmpeg / cap / playwright
+  screen_capture_package: null  # portable package for real_capture
+  privacy_status: null          # pending / passed / blocked
 
   # Accumulated from each stage (7 stages)
   artifacts:
@@ -72,6 +81,11 @@ EP_STATE:
 2. Load the playbook (from user selection or default)
 3. Set budget from configuration or user input (default: $1.00 — screen-demo is typically low-cost)
 4. Initialize EP_STATE
+5. If `production_mode=real_capture` and no verified source is staged, run the
+   idea-director capture preflight. A Recordly launch returns
+   `awaiting_human`; pause for the user to record/export, then ingest only the
+   exact MP4 they select. Do not scan Recordly user data or treat launch as a
+   completed capture.
 
 ### Phase 1: Execute Stages Serially
 
@@ -129,7 +143,13 @@ FINAL_QA:
      - Total actual spend vs. budget
      - Log per-stage cost breakdown
 
-  6. DECISION:
+  6. PRIVACY GATE (REAL CAPTURE):
+     - ScreenCapturePackage hash and package-relative MP4 still verify?
+     - Every sensitive frame range resolved in the rendered output?
+     - final_review.checks.privacy.passed is true?
+     - unresolved_sensitive_regions is zero and redactions_verified is true?
+
+  7. DECISION:
      If all pass → APPROVE for publish
      If legibility issues → send back to compose (re-render) or scene (replan crops)
      If audio issues → send back to compose (re-mix)
@@ -142,6 +162,9 @@ FINAL_QA:
 ```
 CHECK: Source assessment
   - Is source footage referenced and accessible?
+  - For real_capture, is the capture backend explicit?
+  - If a capture adapter was used, is ScreenCapturePackage schema-valid and hash-verified?
+  - Is the capture privacy state explicit? Pending is valid for editing, never for publishing.
   - Is target platform and duration realistic?
   - Are callout/zoom needs identified?
   - If no source footage: STOP — this pipeline requires source footage
@@ -189,6 +212,10 @@ CHECK: Audio quality
 CHECK: Budget gate
   - If budget_spent > budget_total * 0.9 and stages remain:
       Alert and adjust remaining stages
+
+CHECK: Sensitive-region plan (real_capture)
+  - Every detected credential, notification, private tab, or personal-data range has a frame range and planned blur/crop/cut action
+  - Artifacts contain categories and coordinates only, never the captured secret value
 ```
 
 ### After EDIT stage:
@@ -214,6 +241,13 @@ CHECK: Screen sharpness (SCREEN-DEMO CRITICAL)
   - UI text in the recording must be readable
   - If crops caused pixelation: flag for scene plan revision
   - Anti-aliased text must survive compression
+
+CHECK: Privacy render evidence (REAL-CAPTURE CRITICAL)
+  - Inspect mask entry/exit frames, not only the middle of each range
+  - final_review.checks.privacy is present and passed
+  - unresolved_sensitive_regions == 0
+  - redactions_verified == true
+  - If any condition fails: block publish and send back to assets/edit/compose
 ```
 
 ## Feedback Message Templates
@@ -249,13 +283,13 @@ Actual: {what was produced}
 
 | Gate | After Stage | What's Checked | Fail Action |
 |------|-------------|---------------|-------------|
-| G1 | idea | Source assessment, feasibility | Revise idea |
+| G1 | idea | Source/capture package, backend, privacy plan, feasibility | Revise idea or wait for capture |
 | G2 | script | Transcript accuracy, duration estimate | Revise script |
 | G3 | scene_plan | Crop feasibility, callout placement, pacing plan | Revise scene_plan |
-| G4 | assets | Subtitle positioning, audio quality, budget | Revise assets |
+| G4 | assets | Subtitle positioning, audio quality, sensitive-region plan, budget | Revise assets |
 | G5 | edit | Timeline completeness, dead time handling | Revise edit |
-| G6 | compose | Output probe, screen sharpness, audio clarity | Revise compose OR send-back |
-| G7 | publish | Metadata, chapters, export packaging | Revise publish |
+| G6 | compose | Output probe, screen sharpness, audio clarity, rendered privacy evidence | Revise compose OR send-back |
+| G7 | publish | Privacy passed, metadata, chapters, export packaging | Block or revise publish |
 | FINAL | all | Legibility, pacing, subtitles, audio | Send-back to specific stage |
 
 ## Execution Limits

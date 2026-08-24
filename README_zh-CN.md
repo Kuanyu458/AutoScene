@@ -1,3 +1,7 @@
+> **版本说明：** 本文件是从上游 OpenMontage 保留的简体中文说明，尚未完整纳入
+> Beat3D 公开版本的安装与授权边界。当前发行说明请以 [README.md](README.md)、
+> [繁體中文 README](README.zh-TW.md) 与 [UPSTREAM.md](UPSTREAM.md) 为准。
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/monty-dark.svg">
@@ -114,17 +118,17 @@ OpenMontage 可以从 **YouTube 视频、Short、Reel、TikTok 或本地片段**
 
 ### 必备条件
 
-- **Python 3.10+** — [python.org](https://www.python.org/downloads/)
+- **Python 3.12+** — [python.org](https://www.python.org/downloads/)
 - **FFmpeg** — `brew install ffmpeg` / `sudo apt install ffmpeg` / [ffmpeg.org](https://ffmpeg.org/download.html)
-- **Node.js 18+** — [nodejs.org](https://nodejs.org/)
+- **Node.js 22+** — [nodejs.org](https://nodejs.org/)
 - **一款 AI 编程助手** — Claude Code、Cursor、Copilot、Windsurf 或 Codex
 
 ### 安装与运行
 
 ```bash
-git clone https://github.com/calesthio/OpenMontage.git
-cd OpenMontage
-make setup
+git clone https://github.com/Kuanyu458/AutoScene.git
+cd AutoScene
+python3 scripts/bootstrap.py --dev
 ```
 
 在您的 AI 编程助手中打开该项目，然后告诉它您的需求：

@@ -897,6 +897,41 @@ def test_hyperframes_root_composition_has_data_start_and_duration(tmp_path):
     assert 'data-height="1080"' in html
 
 
+def test_hyperframes_video_carries_timeline_v2_source_trim(tmp_path):
+    asset = tmp_path / "source.mp4"
+    asset.write_bytes(b"fixture")
+    workspace = tmp_path / "hyperframes"
+    result = HyperFramesCompose().execute(
+        {
+            "operation": "scaffold_workspace",
+            "workspace_path": str(workspace),
+            "edit_decisions": {
+                "version": "2.0-runtime-adapter",
+                "timeline_version": "2.0",
+                "render_runtime": "hyperframes",
+                "renderer_family": "documentary-montage",
+                "cuts": [
+                    {
+                        "id": "cut-1",
+                        "source": "asset-1",
+                        "in_seconds": 0,
+                        "out_seconds": 1,
+                        "source_in_seconds": 10,
+                        "source_out_seconds": 11,
+                    }
+                ],
+            },
+            "asset_manifest": {"assets": [{"id": "asset-1", "path": str(asset)}]},
+        }
+    )
+
+    assert result.success, result.error
+    html = (workspace / "index.html").read_text(encoding="utf-8")
+    assert 'data-start="0"' in html
+    assert 'data-duration="1"' in html
+    assert 'data-media-start="10"' in html
+
+
 def test_video_compose_blocks_hyperframes_when_runtime_unavailable(
     tmp_path, monkeypatch
 ):

@@ -52,6 +52,24 @@
             "items": { "type": "string" },
             "description": "Paths to sampled frames (video/image only)"
           },
+          "shot_windows": {
+            "type": "array",
+            "description": "Frame-accurate candidate source windows discovered during research.",
+            "items": {
+              "type": "object",
+              "required": ["id", "start_frame", "end_frame", "fps"],
+              "properties": {
+                "id": {"type": "string"},
+                "start_frame": {"type": "integer", "minimum": 0},
+                "end_frame": {"type": "integer", "minimum": 1},
+                "fps": {"type": "number", "exclusiveMinimum": 0},
+                "description": {"type": "string"},
+                "motion_score": {"type": "number", "minimum": 0, "maximum": 1},
+                "quality_score": {"type": "number", "minimum": 0, "maximum": 1}
+              },
+              "additionalProperties": false
+            }
+          },
           "quality_risks": {
             "type": "array",
             "items": { "type": "string" },
@@ -61,6 +79,28 @@
             "type": "array",
             "items": { "type": "string" },
             "description": "What this file can be used for in the production (hero footage, b-roll, background audio, etc.)"
+          },
+          "capture_provenance": {
+            "type": "object",
+            "description": "Optional cross-reference when the reviewed video came from a screen-capture provider.",
+            "required": ["backend", "source_tool", "package_path", "privacy_status"],
+            "properties": {
+              "backend": {
+                "type": "string",
+                "enum": ["ffmpeg", "recordly", "cap", "playwright"]
+              },
+              "source_tool": { "type": "string" },
+              "package_path": {
+                "type": "string",
+                "pattern": "^(?!/)(?![A-Za-z]:[\\\\/]).+",
+                "description": "Project-relative ScreenCapturePackage path; never the user's private application-data path."
+              },
+              "privacy_status": {
+                "type": "string",
+                "enum": ["pending", "passed", "blocked"]
+              }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false

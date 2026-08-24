@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/three_scene_package",
+  "title": "Three Scene Package",
+  "type": "object",
+  "required": ["version", "scene_spec", "backend", "render", "previews", "verification", "provenance"],
+  "properties": {
+    "version": {"type": "string", "const": "1.0"},
+    "scene_spec": {
+      "type": "object",
+      "required": ["version", "id", "template_id", "duration_frames", "fps", "width", "height", "seed", "theme"],
+      "properties": {
+        "version": {"type": "string", "const": "1.0"},
+        "id": {"type": "string"},
+        "template_id": {"type": "string", "enum": ["ui-depth-stack", "orbital-reveal", "data-constellation"]},
+        "duration_frames": {"type": "integer", "minimum": 1},
+        "fps": {"type": "integer", "const": 30},
+        "width": {"type": "integer", "const": 1920},
+        "height": {"type": "integer", "const": 1080},
+        "seed": {"type": "integer"},
+        "theme": {
+          "type": "object",
+          "required": ["background", "primary", "accent", "foreground"],
+          "properties": {
+            "background": {"type": "string"},
+            "primary": {"type": "string"},
+            "accent": {"type": "string"},
+            "foreground": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "camera": {"type": "object"},
+        "lighting": {"type": "object"},
+        "content": {"type": "object"},
+        "beat_cue_frames": {"type": "array", "items": {"type": "integer", "minimum": 0}}
+      },
+      "additionalProperties": false
+    },
+    "backend": {
+      "type": "object",
+      "required": ["runtime", "gl", "pixel_ratio"],
+      "properties": {
+        "runtime": {"type": "string", "const": "remotion-three"},
+        "gl": {"type": "string", "const": "angle"},
+        "pixel_ratio": {"type": "integer", "const": 1}
+      },
+      "additionalProperties": false
+    },
+    "render": {
+      "type": "object",
+      "required": ["path", "relative_path", "sha256", "codec", "duration_frames", "fps", "resolution"],
+      "properties": {
+        "path": {"type": "string"},
+        "relative_path": {"type": "string", "pattern": "^(?!/)(?!.*\\.\\.).+$"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "codec": {"type": "string", "const": "h264"},
+        "duration_frames": {"type": "integer", "minimum": 1},
+        "fps": {"type": "number", "const": 30},
+        "resolution": {"type": "string", "const": "1920x1080"}
+      },
+      "additionalProperties": false
+    },
+    "previews": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["frame", "path", "relative_path", "sha256", "mean_luma"],
+        "properties": {
+          "frame": {"type": "integer", "minimum": 0},
+          "path": {"type": "string"},
+          "relative_path": {"type": "string", "pattern": "^(?!/)(?!.*\\.\\.).+$"},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "mean_luma": {"type": "number", "minimum": 0, "maximum": 255}
+        },
+        "additionalProperties": false
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["status", "non_black", "missing_dependencies", "cue_frames_sampled"],
+      "properties": {
+        "status": {"type": "string", "enum": ["pass", "fail"]},
+        "non_black": {"type": "boolean"},
+        "missing_dependencies": {"type": "array", "items": {"type": "string"}},
+        "cue_frames_sampled": {"type": "array", "items": {"type": "integer", "minimum": 0}}
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["tool", "tool_version", "spec_sha256", "remote_assets", "wall_clock_animation", "source_entry", "source_entry_relative"],
+      "properties": {
+        "tool": {"type": "string", "const": "remotion_three_scene"},
+        "tool_version": {"type": "string"},
+        "spec_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "remote_assets": {"type": "boolean", "const": false},
+        "wall_clock_animation": {"type": "boolean", "const": false},
+        "source_entry": {"type": "string"},
+        "source_entry_relative": {"type": "string", "pattern": "^(?!/)(?!.*\\.\\.).+$"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

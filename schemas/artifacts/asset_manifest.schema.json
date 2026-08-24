@@ -34,6 +34,29 @@
           "provider": { "type": "string", "description": "Provider name (e.g. pixabay, google_imagen)" },
           "license": { "type": "string", "description": "License type (e.g. Pixabay License, CC0)" },
           "original_url": { "type": "string", "description": "Source URL if downloaded from a stock service" },
+          "package_path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "backend": { "type": "string", "minLength": 1 },
+          "cue_frames": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 }
+          },
+          "provenance": {
+            "type": "object",
+            "properties": {
+              "tool": { "type": "string" },
+              "tool_version": { "type": "string" },
+              "seed": { "type": "integer" },
+              "spec_sha256": { "type": "string" },
+              "remote_assets": { "type": "boolean" },
+              "wall_clock_animation": { "type": "boolean" },
+              "source_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "source_mutated": { "type": "boolean" },
+              "package_version": { "type": "string" },
+              "upstream_commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
+            },
+            "additionalProperties": false
+          },
           "voice_performance": {
             "type": "object",
             "description": "Applied voice-performance contract for narration assets.",
@@ -52,6 +75,21 @@
             "additionalProperties": false
           }
         },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "subtype": { "const": "procedural_3d" } },
+              "required": ["subtype"]
+            },
+            "then": {
+              "required": ["package_path", "sha256", "backend", "cue_frames", "provenance"],
+              "properties": {
+                "type": { "const": "animation" },
+                "backend": { "const": "remotion-three-angle" }
+              }
+            }
+          }
+        ],
         "additionalProperties": false
       }
     },

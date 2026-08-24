@@ -48,7 +48,9 @@ class TestPaidToolsCannotSpend:
     """The guard must hold even with a real key present in the environment."""
 
     def test_atlas_image_fails_instead_of_billing(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("ATLASCLOUD_API_KEY", "sk-looks-real-but-must-not-be-used")
+        monkeypatch.setenv(
+            "ATLASCLOUD_API_KEY", "sk-" + "fixture-never-sent-to-a-provider"
+        )
         result = AtlasImage().execute({
             "prompt": "this must never reach the API",
             "output_path": str(tmp_path / "nope.png"),
@@ -57,7 +59,9 @@ class TestPaidToolsCannotSpend:
         assert result.cost_usd == 0.0
 
     def test_atlas_video_fails_instead_of_billing(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("ATLASCLOUD_API_KEY", "sk-looks-real-but-must-not-be-used")
+        monkeypatch.setenv(
+            "ATLASCLOUD_API_KEY", "sk-" + "fixture-never-sent-to-a-provider"
+        )
         result = AtlasVideo().execute({
             "prompt": "this must never reach the API",
             "output_path": str(tmp_path / "nope.mp4"),

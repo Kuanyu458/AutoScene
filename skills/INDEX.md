@@ -1,4 +1,4 @@
-﻿# OpenMontage â€" Skill Index
+# AutoScene skill index (OpenMontage-derived)
 
 > For the full agent onboarding guide, see [`AGENT_GUIDE.md`](../AGENT_GUIDE.md) in the project root.
 
@@ -55,6 +55,7 @@ Key capability families to look for in the output:
 | `tts` | `tts_selector` | Auto-discovers all `capability="tts"` tools |
 | `video_generation` | `video_selector` | Auto-discovers all `capability="video_generation"` tools |
 | `image_generation` | `image_selector` | Auto-discovers all `capability="image_generation"` tools |
+| `screen_capture` | `screen_capture_selector` | FFmpeg direct capture plus explicit Recordly/Cap GUI capture bridges |
 | `audio_processing` | — | FFmpeg-based local tools |
 | `enhancement` | — | Mixed providers |
 | `analysis` | — | Mixed providers |
@@ -138,6 +139,7 @@ Pipeline type skills provide production guidance for specific video formats, ind
 | Screen Recording | `creative/screen-recording.md` | Code walkthroughs, tutorials, software demos |
 | Animation Pipeline | `creative/animation-pipeline.md` | Motion graphics, easing, transitions, composition |
 | 3D World Generation | `creative/3d-world-generation.md` | Continuous Three.js terrain worlds with semantic regions, explicit blockout/production tiers, licensed GLTF/PBR assets, diagnostics, and deterministic camera paths |
+| Auto Montage 3D Pipeline | `pipelines/auto-montage-3d/` | Prepared media, deterministic music timing, frame-accurate cuts, and procedural 3D inserts |
 | Character Animation Pipeline | `pipelines/character-animation/` | Rigged local cartoon characters, pose libraries, action timelines, SVG/Canvas/Remotion/HyperFrames rendering |
 | Cinematic | `creative/cinematic.md` | Letterbox, film pacing, layered audio, color grading |
 
@@ -178,7 +180,7 @@ Stage director skills teach the agent HOW to execute each pipeline stage. Each s
 | Skill | File | Stage | Key Capabilities |
 |-------|------|-------|-----------------|
 | **Executive Producer** | `pipelines/screen-demo/executive-producer.md` | `all` | **7-stage serial orchestration, legibility gates, audio clarity, pacing checks** |
-| Idea Director | `pipelines/screen-demo/idea-director.md` | `idea` | Workflow scoping, UI density assessment, output-shape choice |
+| Idea Director | `pipelines/screen-demo/idea-director.md` | `idea` | Workflow scoping, real-capture provider selection/ingestion, privacy preflight, UI density assessment |
 | Script Director | `pipelines/screen-demo/script-director.md` | `script` | Action mapping, procedural narration, speed planning |
 | Scene Director | `pipelines/screen-demo/scene-director.md` | `scene_plan` | Crop planning, callout restraint, aspect-ratio viability |
 | Asset Director | `pipelines/screen-demo/asset-director.md` | `assets` | Subtitle-first asset kit, audio cleanup, reusable overlays |
