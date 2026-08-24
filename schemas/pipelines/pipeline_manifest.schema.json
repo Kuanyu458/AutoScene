@@ -157,23 +157,6 @@
       "enum": ["guided", "manual_all", "auto_noncreative"],
       "default": "guided"
     },
-    "production_modes": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["name", "description"],
-        "properties": {
-          "name": {"type": "string"},
-          "description": {"type": "string"},
-          "required_tools": {"type": "array", "items": {"type": "string"}},
-          "optional_tools": {"type": "array", "items": {"type": "string"}},
-          "best_for": {"type": "array", "items": {"type": "string"}},
-          "scene_type": {"type": "string"},
-          "agent_skills": {"type": "array", "items": {"type": "string"}}
-        },
-        "additionalProperties": false
-      }
-    },
     "reference_input": {
       "type": "object",
       "description": "Configuration for reference video input support",
