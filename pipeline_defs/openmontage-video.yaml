@@ -1,0 +1,260 @@
+name: openmontage-video
+version: "1.0"
+description: >
+  Reproducible product and website video pipeline with provided, Playwright-recorded,
+  or mixed media. Beat-aware editing, native HyperFrames 3D UI, and Recordly-style
+  2D UI capture are explicit feature contracts rather than silent enhancements.
+category: screen_recording
+stability: beta
+default_checkpoint_policy: guided
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/openmontage-video/executive-producer
+  budget_default_usd: 0.0
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 30
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: false
+
+required_skills:
+  - pipelines/openmontage-video/executive-producer
+  - pipelines/openmontage-video/idea-director
+  - pipelines/openmontage-video/script-director
+  - pipelines/openmontage-video/scene-director
+  - pipelines/openmontage-video/asset-director
+  - pipelines/openmontage-video/edit-director
+  - pipelines/openmontage-video/compose-director
+  - pipelines/openmontage-video/publish-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+compatible_playbooks:
+  recommended:
+    - clean-professional
+    - premium-minimalist
+  also_works:
+    - flat-motion-graphics
+  custom_allowed: true
+
+production_modes:
+  - name: provided
+    description: User supplies video, image, audio, or Recordly MP4/WebM exports.
+    optional_tools:
+      - audio_timing
+      - video_understand
+    agent_skills:
+      - video-edit
+      - music-to-video
+    best_for:
+      - Existing product footage or Recordly exports
+      - Fully offline editing with user-owned media
+  - name: record
+    description: Agent records a localhost or explicitly allow-listed website with Playwright.
+    required_tools:
+      - playwright_recorder
+    optional_tools:
+      - audio_timing
+      - video_understand
+    agent_skills:
+      - playwright-recording
+      - music-to-video
+    best_for:
+      - Repeatable browser UI demos
+      - Localhost product walkthroughs
+  - name: mixed
+    description: Combine supplied media with declarative Playwright browser recordings.
+    optional_tools:
+      - audio_timing
+      - playwright_recorder
+      - video_understand
+    agent_skills:
+      - playwright-recording
+      - video-edit
+      - music-to-video
+    best_for:
+      - Product launch films combining UI capture and branded assets
+
+stages:
+  - name: idea
+    skill: pipelines/openmontage-video/idea-director
+    produces:
+      - brief
+      - decision_log
+    tools_available:
+      - playwright_recorder
+      - audio_timing
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Job mode and output contract are explicit
+      - Every required feature has a viable evidence path
+      - Missing URLs, media, rights, or runtime dependencies are surfaced
+    success_criteria:
+      - Schema-valid brief artifact
+      - Validated project job.yaml
+
+  - name: script
+    skill: pipelines/openmontage-video/script-director
+    required_artifacts_in:
+      - brief
+    produces:
+      - script
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Script names the product outcome and visible proof
+      - Semantic cut points are distinct from optional beat snaps
+      - Each required feature maps to a scene
+    success_criteria:
+      - Schema-valid script artifact
+
+  - name: scene_plan
+    skill: pipelines/openmontage-video/scene-director
+    required_artifacts_in:
+      - script
+    optional_artifacts_in:
+      - brief
+    produces:
+      - scene_plan
+    tools_available:
+      - audio_timing
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Browser focus regions and result holds are explicit
+      - 3D scenes name at least two planes and a one-direction motion contract
+      - Audio marker candidates do not override semantic locks
+    success_criteria:
+      - Schema-valid scene_plan artifact
+
+  - name: assets
+    skill: pipelines/openmontage-video/asset-director
+    required_artifacts_in:
+      - scene_plan
+    optional_artifacts_in:
+      - script
+      - brief
+    produces:
+      - asset_manifest
+      - audiomap
+      - rights_privacy_review
+    optional_tools:
+      - audio_timing
+      - playwright_recorder
+      - subtitle_gen
+      - audio_enhance
+    tools_available:
+      - audio_timing
+      - playwright_recorder
+      - subtitle_gen
+      - audio_enhance
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Provided media and Recordly exports are rights and privacy reviewed
+      - Record mode has a passing dry-run before capture
+      - Audiomap and contact sheets are available for review
+    success_criteria:
+      - Schema-valid asset_manifest, audiomap, and rights_privacy_review artifacts
+      - No unallow-listed browser capture
+
+  - name: edit
+    skill: pipelines/openmontage-video/edit-director
+    required_artifacts_in:
+      - scene_plan
+      - asset_manifest
+      - audiomap
+    optional_artifacts_in:
+      - script
+    produces:
+      - edit_decisions
+      - rough_cut_report
+    tools_available:
+      - audio_timing
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Rough cut is 720p and close to the planned duration
+      - One purposeful 2D focus event per scene at most
+      - 3D motion is perspective/plane-based, not a slide or shake
+      - Beat snaps stay within tolerance and semantic locks remain nominal
+    success_criteria:
+      - Schema-valid edit_decisions and rough_cut_report artifacts
+      - Rough-cut approval is recorded before compose
+
+  - name: compose
+    skill: pipelines/openmontage-video/compose-director
+    required_artifacts_in:
+      - edit_decisions
+      - rough_cut_report
+      - audiomap
+      - rights_privacy_review
+    optional_artifacts_in:
+      - scene_plan
+      - asset_manifest
+    produces:
+      - render_report
+      - final_review
+      - feature_evidence
+    required_tools:
+      - video_compose
+    optional_tools:
+      - hyperframes_compose
+      - audio_mixer
+      - audio_timing
+    tools_available:
+      - video_compose
+      - hyperframes_compose
+      - audio_mixer
+      - audio_timing
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - HyperFrames lint/validate/inspect pass when ui_3d is required
+      - Final candidate is 1920x1080 H.264/AAC at the requested frame rate
+      - feature_evidence proves all required capabilities or references an off decision
+    success_criteria:
+      - Schema-valid render_report, final_review, and feature_evidence artifacts
+      - Final-candidate approval is recorded before publish
+
+  - name: publish
+    skill: pipelines/openmontage-video/publish-director
+    required_artifacts_in:
+      - render_report
+      - final_review
+      - feature_evidence
+    optional_artifacts_in:
+      - brief
+      - script
+    produces:
+      - publish_log
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Formal mother file is produced only after final-candidate approval
+      - Release package contains licenses, SBOM, and decision log
+      - No private media or credentials entered the public package
+    success_criteria:
+      - Schema-valid publish_log artifact
+      - Final output exists at projects/<id>/renders/final.mp4
+
+metadata:
+  locked_versions:
+    node: ">=22 <23"
+    playwright: "1.62.1"
+    hyperframes: "0.7.109"
+    librosa: "0.11.0"
+    soundfile: "0.13.1"
+  default_output:
+    resolution: "1920x1080"
+    fps: 30
+    video_codec: "h264"
+    audio_codec: "aac"

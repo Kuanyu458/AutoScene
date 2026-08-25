@@ -1827,6 +1827,15 @@ class VideoCompose(BaseTool):
             hf_inputs["playbook"] = playbook_data
         if profile:
             hf_inputs["profile"] = profile
+        locked_hf_version = (
+            inputs.get("hyperframes_version")
+            or (edit_decisions.get("metadata") or {}).get("hyperframes_version")
+        )
+        if locked_hf_version:
+            spec = str(locked_hf_version)
+            hf_inputs["hyperframes_package"] = (
+                spec if spec.startswith("hyperframes@") else f"hyperframes@{spec}"
+            )
         if "quality" in inputs:
             hf_inputs["quality"] = inputs["quality"]
         if "fps" in inputs:

@@ -104,3 +104,15 @@ venv/
 
 # Local Wan / diffusers GPU environment
 .venv-wan/
+# Browser recording credentials and private capture state
+.agents/skills/openmontage-video/**/node_modules/
+tools/capture/playwright_runtime/node_modules/
+playwright/.auth/
+storage-state*.json
+auth*.json
+recordings/
+traces/
+downloads/
+*.recordly
+*.capture.json
+*.privacy.json

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/rough_cut_report",
+  "title": "OpenMontage Rough Cut Report",
+  "type": "object",
+  "required": ["version", "status", "output_path", "duration_seconds", "changes", "known_issues"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "status": { "type": "string", "enum": ["draft", "awaiting_human", "approved", "rejected"] },
+    "output_path": { "type": "string", "minLength": 1 },
+    "duration_seconds": { "type": "number", "minimum": 0 },
+    "resolution": { "type": "string" },
+    "changes": { "type": "array", "items": { "type": "string" } },
+    "known_issues": { "type": "array", "items": { "type": "string" } },
+    "script_deltas": { "type": "array", "items": { "type": "string" } },
+    "review_notes": { "type": "array", "items": { "type": "string" } },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true
+}

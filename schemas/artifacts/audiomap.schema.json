@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/audiomap",
+  "title": "Audio Timing Map",
+  "description": "Deterministic beat/onset analysis and applied semantic cut markers.",
+  "type": "object",
+  "required": ["version", "status"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "status": { "type": "string", "enum": ["applied", "not_applicable", "failed"] },
+    "source_tool": { "type": "string", "const": "audio_timing" },
+    "audio": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string" },
+        "duration_sec": { "type": "number", "minimum": 0 },
+        "duration_seconds": { "type": "number", "minimum": 0 },
+        "sr": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "tempo": { "type": "object", "additionalProperties": true },
+    "grid": { "type": "object", "additionalProperties": true },
+    "beats": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+    "downbeats": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+    "markers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nominal_seconds", "applied_seconds", "delta_seconds"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "nominal_seconds": { "type": "number", "minimum": 0 },
+          "applied_seconds": { "type": "number", "minimum": 0 },
+          "delta_seconds": { "type": "number" },
+          "snap_kind": { "type": "string", "enum": ["beat", "downbeat", "onset", "none"] },
+          "semantic_locked": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "applied_cut_boundaries": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "snap_tolerance_seconds": { "type": "number", "minimum": 0, "maximum": 1 },
+    "analysis": { "type": "object", "additionalProperties": true },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true
+}

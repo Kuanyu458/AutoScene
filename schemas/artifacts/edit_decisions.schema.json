@@ -231,6 +231,56 @@
         "verdict": { "type": "string", "enum": ["strong", "acceptable", "revise", "fail"] }
       }
     },
+    "automation": {
+      "type": "object",
+      "description": "OpenMontage automation evidence. Optional for backward compatibility.",
+      "properties": {
+        "beat_sync": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "audiomap_path": { "type": "string" },
+            "snap_tolerance_ms": { "type": "number", "minimum": 0 },
+            "semantic_locked": { "type": "boolean" },
+            "markers": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+          },
+          "additionalProperties": true
+        },
+        "ui_focus_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["scene_id", "focus_count"],
+            "properties": {
+              "scene_id": { "type": "string" },
+              "focus_count": { "type": "integer", "minimum": 0, "maximum": 1 },
+              "scale": { "type": "number", "minimum": 1, "maximum": 2 },
+              "anchor": { "type": "object", "additionalProperties": true },
+              "event": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "ui_3d_scenes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["scene_id", "planes", "perspective"],
+            "properties": {
+              "scene_id": { "type": "string" },
+              "planes": { "type": "integer", "minimum": 2 },
+              "perspective": { "type": "number", "exclusiveMinimum": 0 },
+              "translate_z": { "type": "array", "items": { "type": "number" } },
+              "rotation": { "type": "object", "additionalProperties": true },
+              "motion_direction": { "type": "string" },
+              "no_global_shake": { "type": "boolean" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
     "metadata": { "type": "object" }
   },
   "additionalProperties": false

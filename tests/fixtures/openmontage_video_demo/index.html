@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>OpenMontage fixture</title></head>
+  <body>
+    <main>
+      <h1>Local product demo</h1>
+      <button id="go" type="button">Show result</button>
+      <p id="result" hidden>Result ready</p>
+    </main>
+    <script>
+      document.querySelector('#go').addEventListener('click', () => {
+        document.querySelector('#result').hidden = false;
+      });
+    </script>
+  </body>
+</html>

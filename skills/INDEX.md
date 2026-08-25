@@ -67,6 +67,8 @@ Key capability families to look for in the output:
 | `music_library` | — | Discovers user-provided local tracks |
 | `music_search` | — | Discovers royalty-free search/download providers |
 | `music_generation` | — | Discovers paid/local generation providers |
+| `audio_timing` | — | Deterministic beat/onset analysis and marker snapping |
+| `browser_capture` | — | Safe Playwright localhost recording and Recordly MP4/WebM import boundary |
 | `subtitle` | — | Pure Python |
 | `avatar` | — | Local GPU models |
 | `video_post` | — | FFmpeg-based local tools |
@@ -185,6 +187,19 @@ Stage director skills teach the agent HOW to execute each pipeline stage. Each s
 | Edit Director | `pipelines/screen-demo/edit-director.md` | `edit` | Tight timeline planning, speed notes, subtitle zone control |
 | Compose Director | `pipelines/screen-demo/compose-director.md` | `compose` | Legibility-first render, crisp screen output, verification |
 | Publish Director | `pipelines/screen-demo/publish-director.md` | `publish` | Searchable metadata, chapter packaging, thumbnail concepts |
+
+### OpenMontage Video Pipeline (`pipelines/openmontage-video/`) — v1.0
+
+| Skill | File | Stage | Key Capabilities |
+|------|------|-------|-----------------|
+| Executive Producer | `pipelines/openmontage-video/executive-producer.md` | all | Mode routing, hard feature blockers, independent approval gates |
+| Idea Director | `pipelines/openmontage-video/idea-director.md` | idea | Job normalization, source mode, runtime and evidence lock |
+| Script Director | `pipelines/openmontage-video/script-director.md` | script | Outcome-led UI proof and semantic timing locks |
+| Scene Director | `pipelines/openmontage-video/scene-director.md` | scene_plan | One-focus 2D UI and two-plane native 3D contracts |
+| Asset Director | `pipelines/openmontage-video/asset-director.md` | assets | Provided/record/mixed media review, audiomap, privacy evidence |
+| Edit Director | `pipelines/openmontage-video/edit-director.md` | edit | ±250ms beat snap, 720p rough cut, focused UI motion |
+| Compose Director | `pipelines/openmontage-video/compose-director.md` | compose | HyperFrames verification, feature evidence, final candidate |
+| Publish Director | `pipelines/openmontage-video/publish-director.md` | publish | Post-approval mother file and reproducible release package |
 
 ### Clip Factory Pipeline (`pipelines/clip-factory/`) — v2.0
 

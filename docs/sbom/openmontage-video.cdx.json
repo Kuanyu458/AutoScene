@@ -1,0 +1,68 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "openmontage-video",
+      "version": "1.0"
+    }
+  },
+  "components": [
+    {
+      "name": "ffmpeg",
+      "version": "8.x floor",
+      "license": "LGPL/GPL build-dependent",
+      "type": "framework"
+    },
+    {
+      "name": "hyperframes",
+      "version": "0.7.109",
+      "license": "upstream-notice-required",
+      "type": "framework"
+    },
+    {
+      "name": "node",
+      "version": "22.x",
+      "license": "Node.js license",
+      "type": "framework"
+    },
+    {
+      "name": "fsevents",
+      "version": "2.3.2",
+      "license": "MIT",
+      "type": "library"
+    },
+    {
+      "name": "librosa",
+      "version": "0.11.0",
+      "license": "ISC",
+      "type": "library"
+    },
+    {
+      "name": "numpy",
+      "version": "2.3.5",
+      "license": "BSD-3-Clause",
+      "type": "library"
+    },
+    {
+      "name": "playwright",
+      "version": "1.62.1",
+      "license": "Apache-2.0",
+      "type": "library"
+    },
+    {
+      "name": "playwright-core",
+      "version": "1.62.1",
+      "license": "Apache-2.0",
+      "type": "library"
+    },
+    {
+      "name": "soundfile",
+      "version": "0.13.1",
+      "license": "BSD-3-Clause",
+      "type": "library"
+    }
+  ]
+}
