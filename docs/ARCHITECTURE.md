@@ -37,14 +37,19 @@ OpenMontage/
 │   ├── checkpoint.py       # Pipeline state persistence & stage transitions
 │   ├── pipeline_loader.py  # YAML manifest loading & validation
 │   ├── media_profiles.py   # Platform-specific render profiles (YouTube, TikTok, etc.)
+│   ├── edit_timeline.py    # Shared revisioned source-led authoring contract
 │   ├── env_loader.py       # .env variable management
 │   └── providers/          # (Reserved for future provider abstractions)
 │
-├── tools/                  # 57+ Python tool implementations
+├── backlot/                # FastAPI board observer plus explicit edit-timeline authoring API
+│   ├── edit_api.py         # Atomic GET/PATCH timeline persistence with optimistic revisions
+│   └── ui/                 # Board and revisioned timeline authoring page
+│
+├── tools/                  # Registered Python tool implementations
 │   ├── base_tool.py        # Abstract base class — the tool contract
 │   ├── tool_registry.py    # Auto-discovery singleton registry
 │   ├── cost_tracker.py     # Budget governance (estimate → reserve → reconcile)
-│   ├── analysis/           # Transcription, scene detection, frame sampling, video understanding
+│   ├── analysis/           # Transcription, scene detection, frame sampling, video understanding, editorial QA
 │   ├── audio/              # TTS (ElevenLabs, OpenAI, Piper, Azure, Google), music gen, mixing, enhancement
 │   ├── avatar/             # Talking head animation, lip sync
 │   ├── enhancement/        # Upscale, bg removal, face enhance/restore, color grading
@@ -55,7 +60,7 @@ OpenMontage/
 │
 ├── pipeline_defs/          # YAML pipeline manifests
 ├── schemas/                # JSON Schema definitions for validation
-│   ├── artifacts/          # 11 artifact schemas (brief → publish_log)
+│   ├── artifacts/          # Canonical artifact schemas, including source-led editing contracts
 │   ├── checkpoints/        # Checkpoint state schema
 │   ├── pipelines/          # Pipeline manifest schema
 │   ├── styles/             # Style playbook schema
@@ -81,7 +86,7 @@ OpenMontage/
 
 ### 1. Agent-First Orchestration
 
-There is **no Python orchestrator**. The LLM agent:
+There is **no Python production orchestrator**. Narrow persistence adapters (such as the Backlot edit API) do not make stage or creative decisions. The LLM agent:
 - Reads the pipeline manifest to know the stage order
 - Reads each stage-director skill for detailed instructions
 - Calls tools, evaluates results, makes creative decisions
@@ -151,7 +156,7 @@ Selectors route based on: user preference when explicitly set, then scored ranki
 
 ### Tool Inventory by Category
 
-**Analysis (5):** transcriber (WhisperX), azure_stt, scene_detect, frame_sampler, video_understand (CLIP/BLIP-2)
+**Analysis (8):** transcriber (WhisperX), azure_stt, scene_detect, frame_sampler, video_understand (CLIP/BLIP-2), editorial_transcript, timeline_inspector, cut_boundary_qa
 
 **Audio (9):** elevenlabs_tts, google_tts, openai_tts, piper_tts, azure_tts, tts_selector, music_gen, audio_mixer, audio_enhance
 
@@ -269,7 +274,7 @@ Checkpoints persist pipeline state as JSON in the project's `pipeline/` director
 
 **Functions:** `write_checkpoint()`, `read_checkpoint()`, `get_latest_checkpoint()`, `get_completed_stages()`, `get_next_stage()`
 
-### Canonical Artifacts (11 types, all JSON-schema validated)
+### Canonical Artifacts (15+ types, all JSON-schema validated)
 
 | Artifact | Stage | Contains |
 |----------|-------|----------|
@@ -279,7 +284,11 @@ Checkpoints persist pipeline state as JSON in the project's `pipeline/` director
 | `script` | script | Timestamped sections with enhancement cues, pronunciation guides |
 | `scene_plan` | scene_plan | Scene definitions with type, description, timing |
 | `asset_manifest` | assets | Generated assets with path, source tool, scene association |
-| `edit_decisions` | edit | Editorial cuts with in/out timings |
+| `edit_decisions` | edit | Editorial cuts with in/out timings; optional `zoom_keyframes` |
+| `editorial_transcript` | script/edit (optional) | Provider-neutral words, phrases, source fingerprint and audio events |
+| `cut_review` | edit (optional) | Per-boundary split-word/padding findings and optional evidence paths |
+| `edit_timeline` | edit (optional) | Revisioned shared authoring contract for segments, order, zoom and overlays |
+| `timeline_inspection` | edit/compose (optional) | Filmstrip, waveform, timed words and silence evidence for a source range |
 | `render_report` | compose | Output metadata (format, resolution, duration) |
 | `publish_log` | publish | Platform publication entries with status |
 | `review` | (any) | Reviewer feedback and approval records |
@@ -471,7 +480,30 @@ Consumed via `npx hyperframes` (no monorepo checkout needed). Runtime floor: Nod
 - Handles pure concat/trim when no composition is needed
 - Also handles subtitle burn-in as a post-hoc operation
 
-`video_compose` reads `edit_decisions.render_runtime` and dispatches via `_render_via_hyperframes`, `_remotion_render`, or `_render_via_ffmpeg`. Silent runtime swaps are forbidden — the tool returns a structured blocker when the chosen runtime is unavailable. See `AGENT_GUIDE.md` → "Composition Runtimes (Inside video_compose)" and `skills/core/hyperframes.md` for the full decision matrix.
+`video_compose` accepts either the canonical `edit_decisions` artifact or the optional revisioned `edit_timeline`. A timeline is converted back to renderer decisions before dispatch, preserving subtitles, audio, overlays, bespoke settings and automation evidence. `edit_timeline.zoom_keyframes` are consumed by Remotion; FFmpeg and the stock HyperFrames adapter fail closed when they cannot honor them. The selected runtime still comes from `edit_decisions.render_runtime`; silent runtime swaps are forbidden — the tool returns a structured blocker when the chosen runtime is unavailable. See `AGENT_GUIDE.md` → "Composition Runtimes (Inside video_compose)" and `skills/core/hyperframes.md` for the full decision matrix.
+
+---
+
+## Source-led Editing and Backlot Authoring
+
+The source-led editing layer is intentionally split into analysis, authoring and rendering:
+
+1. `editorial_transcript` normalizes Whisper/WhisperX-compatible word records into phrase groups,
+   CJK-safe text, source fingerprints and cache metadata.
+2. `cut_boundary_qa` checks every adjacent cut for split words and insufficient padding. When a
+   source path is available it calls `timeline_inspector` to persist a filmstrip/waveform evidence
+   image and JSON sidecar.
+3. `lib/edit_timeline.py` normalizes legacy `edit_decisions.cuts` and applies only revisioned
+   `trim`, `reorder`, `set_zoom_keyframe` and `remove_zoom_keyframe` operations.
+4. `backlot/edit_api.py` exposes explicit GET/PATCH endpoints with optimistic revisions, a process
+   lock and atomic replacement. Board state and SSE remain observational.
+5. `video_compose` round-trips the timeline to the existing renderer contract; it never lets the
+   browser become a second render pipeline.
+
+The six footage-led manifests (`talking-head`, `clip-factory`, `podcast-repurpose`, `hybrid`,
+`screen-demo`, `openmontage-video`) declare these tools as optional. Generated-only pipelines are
+not required to create source-led artifacts. See [`docs/EDIT_TIMELINE.md`](EDIT_TIMELINE.md) for
+the payloads, schemas, API responses, supported runtime matrix and licensing boundary.
 
 ---
 
@@ -500,6 +532,7 @@ tests/
 **Required:**
 - Python >= 3.10
 - FFmpeg (used by ~15 tools)
+- Pillow >= 10.0 (timeline evidence compositor and existing graphics tools)
 
 **Optional (extend capabilities):**
 - Node.js (for Remotion composer)
@@ -514,7 +547,7 @@ tests/
 
 ## Key Design Decisions
 
-1. **No runtime orchestrator** — The LLM agent reads YAML + Markdown and drives everything. This makes the system debuggable (just read the skill) and model-agnostic.
+1. **No production runtime orchestrator** — The LLM agent reads YAML + Markdown and drives everything. Narrow persistence adapters such as Backlot edit-timeline routes do not orchestrate stages or make creative decisions. This keeps the system debuggable (just read the skill) and model-agnostic.
 
 2. **Checkpoint-based resumption** — Any stage can fail and the pipeline resumes from the last checkpoint. No re-running completed stages.
 
@@ -525,3 +558,7 @@ tests/
 5. **Selector pattern over hard-coded providers** — Capabilities degrade gracefully. Missing an API key? The selector falls through to the next provider or a local alternative.
 
 6. **Skills over code for intelligence** — Creative decisions, quality checklists, review criteria, and prompt templates live in Markdown skills, not Python. This means the agent's behavior can be tuned by editing text files, not code.
+
+7. **Shared authoring/renderer boundary** — `edit_timeline` is a revisioned, schema-validated authoring
+   contract. Backlot persists it atomically, while `video_compose` remains the only composition
+   boundary and fails closed when an approved runtime cannot honor a zoom keyframe.

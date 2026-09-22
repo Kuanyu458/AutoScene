@@ -66,6 +66,23 @@
         "additionalProperties": false
       }
     },
+    "zoom_keyframes": {
+      "type": "array",
+      "description": "Optional revisioned zoom/focus keyframes authored in edit_timeline.",
+      "items": {
+        "type": "object",
+        "required": ["segment_id", "time_seconds", "scale", "x", "y"],
+        "properties": {
+          "segment_id": { "type": "string" },
+          "time_seconds": { "type": "number", "minimum": 0 },
+          "scale": { "type": "number", "minimum": 1 },
+          "x": { "type": "number", "minimum": 0, "maximum": 1 },
+          "y": { "type": "number", "minimum": 0, "maximum": 1 },
+          "easing": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
     "overlays": {
       "type": "array",
       "items": {
@@ -193,6 +210,18 @@
         "required": ["type", "at_seconds", "duration_seconds"]
       }
     },
+    "canvas": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "coordinate_space": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "visual_layers": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "camera_tracks": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "studio_asset_manifest": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
     "renderer_family": {
       "type": "string",
       "enum": ["explainer-data", "explainer-teacher", "cinematic-trailer", "documentary-montage", "product-reveal", "screen-demo", "presenter", "animation-first"],

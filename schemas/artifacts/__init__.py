@@ -35,6 +35,10 @@ ARTIFACT_NAMES = [
     "rights_privacy_review",
     "rough_cut_report",
     "feature_evidence",
+    "editorial_transcript",
+    "cut_review",
+    "edit_timeline",
+    "timeline_inspection",
 ]
 
 

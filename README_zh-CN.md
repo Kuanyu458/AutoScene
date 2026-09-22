@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="#从您已经喜欢的视频开始">粘贴参考视频</a> &nbsp;·&nbsp;
+  <a href="#source-led-editing">素材剪辑与时间轴</a> &nbsp;·&nbsp;
   <a href="#快速开始">快速开始</a> &nbsp;·&nbsp;
   <a href="#尝试这些提示词">尝试这些提示词</a> &nbsp;·&nbsp;
   <a href="#流水线">流水线</a> &nbsp;·&nbsp;
@@ -42,6 +43,32 @@
 将您的 AI 编程助手变成一个完整的视频制作工作室。用通俗的语言描述您的需求——您的智能体会自动处理研究、脚本编写、资产生成、剪辑以及最终合成。
 
 **重要的区别：** OpenMontage 可以制作基于图像生成的视频，但它也能为免费/开源工作流制作真正的**原生视频（video video）**：智能体会从免费的免版税素材和开源档案中建立语料库，检索实际的动态画面，将它们剪辑到时间线中，并渲染出成品。这绝非通常那种“让几张静态图片动起来就称为视频”的把戏。
+
+<a id="source-led-editing"></a>
+
+## 本 Fork 新增：可审计的素材剪辑与时间轴编辑
+
+本 Fork 增加了一层不绑定供应商的 source-led editing 能力：
+
+| 能力 | 入口 | 作用 |
+|---|---|---|
+| 编辑型逐字稿 | `editorial_transcript` | 将 Whisper/WhisperX 兼容的 word timestamps 归并为 phrases，并记录来源指纹。 |
+| 剪辑边界 QA | `cut_boundary_qa` | 检查每一个相邻 cut 是否切断单词或贴近词边界，可附 filmstrip 证据。 |
+| 时间轴检查 | `timeline_inspector` | 输出 filmstrip、波形、词级时间轴与静音区段的 PNG/JSON。 |
+| 人机协作时间轴 | Backlot `/p/<project_id>/edit` | 通过 revisioned `edit_timeline` 支持 trim、reorder 与 zoom/focus keyframes。 |
+
+时间轴仍会转回既有 `edit_decisions`，再由锁定的 Remotion、HyperFrames 或 FFmpeg runtime
+负责合成。Remotion 已渲染 zoom keyframes；不支持该字段的 runtime 会明确阻挡，不会静默
+丢失编辑。完整契约请参阅 [`docs/EDIT_TIMELINE.md`](docs/EDIT_TIMELINE.md)。
+
+这组工具已作为 optional 能力接入 talking-head、clip-factory、podcast-repurpose、hybrid、
+screen-demo 与 openmontage-video；纯生成式流水线无需启用。浏览器 getDisplayMedia、
+webcam/microphone 即时捕捉及 OpenVid 的 GLB mockup runtime 尚未直接移植，现有 Playwright
+录制与 HyperFrames/Three.js/Blender 路径保持不变。
+
+本次实现没有复制或 vendoring 参考项目代码。video-use 为 MIT；openvid 使用 PolyForm
+Noncommercial 1.0.0 source-available 授权，并非 OSI open-source license。仓库本身仍按
+AGPLv3 发布；未来若要直接整合 OpenVid 或商用，请先完成单独的授权与法务审查。
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/f77ce7a4-68b8-4f94-a287-e94bf50a32e1" width="100%" controls></video>

@@ -1,0 +1,538 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenMontage 素材生成至最終影片輸出",
+    "output": "docs/openmontage-asset-to-video.architecture.html",
+    "animation": "none",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1220,
+      600
+    ],
+    "views": [
+      {
+        "id": "asset-production",
+        "label": "素材生成主路徑",
+        "focus": [
+          "agent_control",
+          "pipeline_defs",
+          "tool_registry",
+          "canonical_store",
+          "asset_generators",
+          "project_assets"
+        ],
+        "note": "從 pipeline 與 stage skill 產生並保存可追溯的影像、影片與音訊素材。"
+      },
+      {
+        "id": "editing-boundary",
+        "label": "編輯與時間軸",
+        "focus": [
+          "project_assets",
+          "edit_backlot",
+          "video_compose",
+          "canonical_store"
+        ],
+        "note": "asset_manifest、edit_decisions 與 revisioned edit_timeline 在此銜接。"
+      },
+      {
+        "id": "render-delivery",
+        "label": "渲染與交付",
+        "focus": [
+          "video_compose",
+          "remotion",
+          "hyperframes",
+          "ffmpeg",
+          "final_output"
+        ],
+        "note": "video_compose 依已核准的 render_runtime 路由到實際渲染引擎。"
+      }
+    ],
+    "repository": {
+      "url": "https://github.com/Kuanyu458/AutoScene.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "3eb6c6dd4b28019223c1d5f2934f0868b849c60d"
+    }
+  },
+  "components": [
+    {
+      "id": "agent_control",
+      "type": "backend",
+      "label": "Agent 控制平面",
+      "sublabel": "LLM + stage skills",
+      "tag": "orchestration",
+      "sources": [
+        {
+          "path": "AGENT_GUIDE.md",
+          "label": "agent contract"
+        },
+        {
+          "path": "PROJECT_CONTEXT.md",
+          "label": "architecture"
+        }
+      ],
+      "pos": [
+        20,
+        50
+      ],
+      "size": [
+        135,
+        74
+      ]
+    },
+    {
+      "id": "pipeline_defs",
+      "type": "backend",
+      "label": "Pipeline 定義",
+      "sublabel": "YAML + stage gates",
+      "tag": "stage order + gates",
+      "sources": [
+        {
+          "path": "pipeline_defs/animated-explainer.yaml",
+          "label": "pipeline definitions"
+        },
+        {
+          "path": "lib/pipeline_loader.py",
+          "label": "manifest loader"
+        }
+      ],
+      "pos": [
+        180,
+        50
+      ],
+      "size": [
+        145,
+        74
+      ]
+    },
+    {
+      "id": "tool_registry",
+      "type": "backend",
+      "label": "Tool Registry",
+      "sublabel": "discover + select",
+      "tag": "discover → select → execute",
+      "sources": [
+        {
+          "path": "tools/tool_registry.py",
+          "label": "auto-discovery"
+        },
+        {
+          "path": "tools/base_tool.py",
+          "label": "tool contract"
+        }
+      ],
+      "pos": [
+        350,
+        50
+      ],
+      "size": [
+        155,
+        74
+      ]
+    },
+    {
+      "id": "canonical_store",
+      "type": "database",
+      "label": "Canonical artifacts",
+      "sublabel": "stage JSON + checkpoints",
+      "tag": "JSON schema validated",
+      "sources": [
+        {
+          "path": "schemas/artifacts/asset_manifest.schema.json",
+          "label": "artifact schemas"
+        },
+        {
+          "path": "lib/checkpoint.py",
+          "label": "checkpoint persistence"
+        }
+      ],
+      "pos": [
+        360,
+        180
+      ],
+      "size": [
+        170,
+        74
+      ]
+    },
+    {
+      "id": "asset_generators",
+      "type": "external",
+      "label": "素材生成 providers",
+      "sublabel": "影像 · 影片 · TTS · music",
+      "tag": "cloud / local / stock",
+      "sources": [
+        {
+          "path": "tools/graphics/flux_image.py",
+          "label": "image + graphics"
+        },
+        {
+          "path": "tools/audio/tts_selector.py",
+          "label": "TTS + music"
+        },
+        {
+          "path": "tools/video/video_selector.py",
+          "label": "video providers"
+        }
+      ],
+      "pos": [
+        530,
+        50
+      ],
+      "size": [
+        165,
+        74
+      ]
+    },
+    {
+      "id": "project_assets",
+      "type": "database",
+      "label": "專案素材工作區",
+      "sublabel": "projects/<id>/assets",
+      "tag": "explicit output_path",
+      "sources": [
+        {
+          "path": "AGENT_GUIDE.md",
+          "label": "workspace contract"
+        },
+        {
+          "path": "AGENT_GUIDE.md",
+          "label": "project workspaces"
+        }
+      ],
+      "pos": [
+        720,
+        50
+      ],
+      "size": [
+        150,
+        74
+      ]
+    },
+    {
+      "id": "edit_backlot",
+      "type": "backend",
+      "label": "編輯階段 + Backlot",
+      "sublabel": "revisioned timeline",
+      "tag": "revisioned + optimistic lock",
+      "sources": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "label": "editing architecture"
+        },
+        {
+          "path": "AGENT_GUIDE.md",
+          "label": "workspace contract"
+        }
+      ],
+      "pos": [
+        895,
+        50
+      ],
+      "size": [
+        160,
+        74
+      ]
+    },
+    {
+      "id": "video_compose",
+      "type": "backend",
+      "label": "video_compose",
+      "sublabel": "runtime dispatch",
+      "tag": "runtime-aware dispatch",
+      "sources": [
+        {
+          "path": "tools/video/video_compose.py",
+          "label": "composition orchestrator"
+        },
+        {
+          "path": "lib/media_profiles.py",
+          "label": "render profiles"
+        }
+      ],
+      "pos": [
+        560,
+        330
+      ],
+      "size": [
+        170,
+        74
+      ]
+    },
+    {
+      "id": "remotion",
+      "type": "backend",
+      "label": "Remotion",
+      "sublabel": "React renderer",
+      "tag": "render_runtime",
+      "sources": [
+        {
+          "path": "remotion-composer/package.json",
+          "label": "React + Remotion"
+        }
+      ],
+      "pos": [
+        770,
+        220
+      ],
+      "size": [
+        140,
+        68
+      ]
+    },
+    {
+      "id": "hyperframes",
+      "type": "backend",
+      "label": "HyperFrames",
+      "sublabel": "HTML / CSS / GSAP",
+      "tag": "render_runtime",
+      "sources": [
+        {
+          "path": "tools/video/hyperframes_compose.py",
+          "label": "workspace driver"
+        },
+        {
+          "path": ".agents/skills/hyperframes-core/SKILL.md",
+          "label": "runtime guidance"
+        }
+      ],
+      "pos": [
+        770,
+        330
+      ],
+      "size": [
+        140,
+        74
+      ]
+    },
+    {
+      "id": "ffmpeg",
+      "type": "backend",
+      "label": "FFmpeg",
+      "sublabel": "stitch · trim · post",
+      "tag": "render_runtime",
+      "sources": [
+        {
+          "path": "tools/video/video_stitch.py",
+          "label": "assembly"
+        },
+        {
+          "path": "tools/video/video_compose.py",
+          "label": "fallback path"
+        }
+      ],
+      "pos": [
+        770,
+        440
+      ],
+      "size": [
+        140,
+        68
+      ]
+    },
+    {
+      "id": "final_output",
+      "type": "external",
+      "label": "最終影片交付",
+      "sublabel": "final.mp4 + publish_log",
+      "tag": "MP4 / platform profile",
+      "sources": [
+        {
+          "path": "schemas/artifacts/render_report.schema.json",
+          "label": "render report"
+        },
+        {
+          "path": "schemas/artifacts/publish_log.schema.json",
+          "label": "publish log"
+        }
+      ],
+      "pos": [
+        950,
+        330
+      ],
+      "size": [
+        170,
+        74
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "控制與素材生成",
+      "wraps": [
+        "agent_control",
+        "pipeline_defs",
+        "tool_registry",
+        "asset_generators"
+      ],
+      "pad": 14
+    },
+    {
+      "kind": "region",
+      "label": "專案工作區",
+      "wraps": [
+        "canonical_store",
+        "project_assets",
+        "edit_backlot"
+      ],
+      "pad": 14
+    },
+    {
+      "kind": "region",
+      "label": "合成與交付",
+      "wraps": [
+        "video_compose",
+        "remotion",
+        "hyperframes",
+        "ffmpeg",
+        "final_output"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "id": "agent_reads_pipeline",
+      "from": "agent_control",
+      "to": "pipeline_defs",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "pipeline_to_registry",
+      "from": "pipeline_defs",
+      "to": "tool_registry",
+      "variant": "dashed",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "registry_to_generators",
+      "from": "tool_registry",
+      "to": "asset_generators",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "generators_to_workspace",
+      "from": "asset_generators",
+      "to": "project_assets",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "workspace_to_edit",
+      "from": "project_assets",
+      "to": "edit_backlot",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "pipeline_to_artifacts",
+      "from": "pipeline_defs",
+      "to": "canonical_store",
+      "variant": "dashed",
+      "route": "orthogonal-v"
+    },
+    {
+      "id": "canonical_to_compose",
+      "from": "canonical_store",
+      "to": "video_compose",
+      "variant": "dashed",
+      "route": "orthogonal-v"
+    },
+    {
+      "id": "edit_to_compose",
+      "from": "edit_backlot",
+      "to": "video_compose",
+      "variant": "emphasis",
+      "route": "orthogonal-v",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          975,
+          160
+        ],
+        [
+          740,
+          160
+        ],
+        [
+          740,
+          520
+        ],
+        [
+          645,
+          520
+        ]
+      ]
+    },
+    {
+      "id": "compose_to_remotion",
+      "from": "video_compose",
+      "to": "remotion",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "compose_to_hyperframes",
+      "from": "video_compose",
+      "to": "hyperframes",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "compose_to_ffmpeg",
+      "from": "video_compose",
+      "to": "ffmpeg",
+      "variant": "dashed",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "remotion_to_output",
+      "from": "remotion",
+      "to": "final_output",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "hyperframes_to_output",
+      "from": "hyperframes",
+      "to": "final_output",
+      "variant": "emphasis",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "ffmpeg_to_output",
+      "from": "ffmpeg",
+      "to": "final_output",
+      "variant": "dashed",
+      "route": "orthogonal-h"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "執行契約",
+      "items": [
+        "Agent 驅動 stage 順序；tools 提供能力與持久化。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "素材來源",
+      "items": [
+        "Selector 路由 provider；輸出保留於 projects/<id>/assets/。"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "渲染治理",
+      "items": [
+        "video_compose 只走核准 runtime；以 render_report／publish_log 收尾。"
+      ]
+    }
+  ]
+}

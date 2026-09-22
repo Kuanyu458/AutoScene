@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/cut_review",
+  "title": "Cut Boundary Review",
+  "description": "Machine-readable review of every edit-decision boundary, including evidence and violations.",
+  "type": "object",
+  "required": ["version", "boundaries", "summary", "status"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "edit_decisions_version": { "type": ["string", "null"] },
+    "boundaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "timeline_seconds", "source_seconds", "issues", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "timeline_seconds": { "type": "number", "minimum": 0 },
+          "source": { "type": ["string", "null"] },
+          "source_seconds": { "type": "number", "minimum": 0 },
+          "left_cut_id": { "type": ["string", "null"] },
+          "right_cut_id": { "type": ["string", "null"] },
+          "issues": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "status": { "type": "string", "enum": ["pass", "warn", "fail"] },
+          "evidence_path": { "type": "string" },
+          "evidence_error": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["checked_boundaries", "passed_boundaries", "error_count", "warning_count", "coverage_complete"],
+      "properties": {
+        "checked_boundaries": { "type": "integer", "minimum": 0 },
+        "passed_boundaries": { "type": "integer", "minimum": 0 },
+        "error_count": { "type": "integer", "minimum": 0 },
+        "warning_count": { "type": "integer", "minimum": 0 },
+        "coverage_complete": { "type": "boolean" },
+        "min_padding_ms": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "status": { "type": "string", "enum": ["pass", "needs_review", "fail"] }
+  },
+  "additionalProperties": false
+}

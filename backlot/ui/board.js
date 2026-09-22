@@ -73,6 +73,9 @@ function renderSlate(s) {
       `IDLE${s.last_activity ? " · " + fmtAgo(s.last_activity).toUpperCase() : ""}`);
   }
 
+  const canEdit = Boolean(
+    s.artifacts && (s.artifacts.edit_timeline || s.artifacts.edit_decisions)
+  );
   const cost = el("div", { class: "cost" });
   if (s.cost) {
     const spent = s.cost.total_spent_usd ?? 0;
@@ -98,6 +101,11 @@ function renderSlate(s) {
     ...chips,
     el("div", { class: "spacer" }),
     renderThemeToggle(),
+    canEdit ? el("a", {
+      class: "chip edit-link",
+      href: "/p/" + encodedProjectId + "/edit",
+      title: "Open the revisioned edit-timeline authoring view",
+    }, "EDIT TIMELINE") : null,
     liveEl,
     cost,
   );
@@ -161,11 +169,11 @@ const STAGE_ARTIFACTS = {
   research: ["research_brief"],
   proposal: ["proposal_packet"],
   idea: ["brief"],
-  script: ["script"],
+  script: ["script", "editorial_transcript"],
   scene_plan: ["scene_plan"],
   assets: ["asset_manifest"],
-  edit: ["edit_decisions"],
-  compose: ["render_report", "final_review"],
+  edit: ["edit_decisions", "edit_timeline", "cut_review"],
+  compose: ["render_report", "final_review", "timeline_inspection"],
   publish: ["publish_log"],
 };
 

@@ -70,8 +70,10 @@ stages:
     required_tools:
       - transcriber
     optional_tools:
+      - editorial_transcript
       - scene_detect
     tools_available:
+      - editorial_transcript
       - transcriber
       - scene_detect
     checkpoint_required: true
@@ -141,7 +143,10 @@ stages:
       - script
     produces:
       - edit_decisions
-    tools_available: []
+    optional_tools:
+      - cut_boundary_qa
+    tools_available:
+      - cut_boundary_qa
     checkpoint_required: true
     human_approval_default: false
     review_focus:
@@ -167,10 +172,12 @@ stages:
       - video_trimmer
       - audio_mixer
     optional_tools:
+      - timeline_inspector
       - audio_enhance
       - color_grade
     tools_available:
       - video_compose
+      - timeline_inspector
       - video_trimmer
       - audio_mixer
       - audio_enhance

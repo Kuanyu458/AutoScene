@@ -66,8 +66,10 @@ stages:
       - script
     required_tools:
       - transcriber      # speech-to-text
-    optional_tools: []
+    optional_tools:
+      - editorial_transcript
     tools_available:
+      - editorial_transcript
       - transcriber
     checkpoint_required: true
     human_approval_default: true
@@ -145,8 +147,12 @@ stages:
     optional_tools:
       - silence_cutter   # auto jump cuts on silent segments
       - video_trimmer    # speed control (0.5x–2x), cut, concat
+      - cut_boundary_qa
+      - timeline_inspector
     tools_available:
       - silence_cutter
+      - cut_boundary_qa
+      - timeline_inspector
       - video_trimmer
     checkpoint_required: true
     human_approval_default: false
@@ -173,6 +179,7 @@ stages:
       - video_compose    # rendering
       - audio_mixer      # audio layering + segmented music
     optional_tools:
+      - timeline_inspector
       - face_enhance     # face enhancement
       - eye_enhance      # eye brightening, dark circle removal
       - color_grade      # color correction
@@ -187,6 +194,7 @@ stages:
       - visual_qa        # frame extraction + quality validation
     tools_available:
       - video_compose
+      - timeline_inspector
       - audio_mixer
       - face_enhance
       - eye_enhance

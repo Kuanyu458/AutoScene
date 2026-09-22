@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/edit_timeline",
+  "title": "Edit Timeline",
+  "description": "Shared agent/UI timeline artifact. It is an authoring contract; native composition remains canonical.",
+  "type": "object",
+  "required": ["version", "revision", "segments"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "revision": { "type": "integer", "minimum": 0 },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "path": { "type": "string" },
+          "fingerprint": { "type": "string" },
+          "duration_seconds": { "type": "number", "minimum": 0 },
+          "fps": { "type": "number", "exclusiveMinimum": 0 },
+          "rotation": { "type": "integer" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "source_in_seconds", "source_out_seconds", "timeline_start_seconds", "timeline_end_seconds"],
+        "properties": {
+          "id": { "type": "string" },
+          "source": { "type": "string" },
+          "source_in_seconds": { "type": "number", "minimum": 0 },
+          "source_out_seconds": { "type": "number", "minimum": 0 },
+          "timeline_start_seconds": { "type": "number", "minimum": 0 },
+          "timeline_end_seconds": { "type": "number", "minimum": 0 },
+          "speed": { "type": "number", "exclusiveMinimum": 0 },
+          "transition_in": { "type": "string" },
+          "transition_out": { "type": "string" },
+          "transform": { "type": "object", "additionalProperties": true },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "zoom_keyframes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["segment_id", "time_seconds", "scale", "x", "y"],
+        "properties": {
+          "segment_id": { "type": "string" },
+          "time_seconds": { "type": "number", "minimum": 0 },
+          "scale": { "type": "number", "minimum": 1 },
+          "x": { "type": "number", "minimum": 0, "maximum": 1 },
+          "y": { "type": "number", "minimum": 0, "maximum": 1 },
+          "easing": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "audio_tracks": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "overlays": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "canvas": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "coordinate_space": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "visual_layers": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "camera_tracks": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "asset_manifest": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": false
+}

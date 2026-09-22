@@ -16,7 +16,7 @@ Agent reads pipeline manifest (YAML) → reads stage director skill (MD)
 → checkpoints (Python utility) → presents to human for approval
 ```
 
-**No Python orchestrator, no Python reviewer, no Python handlers.** The agent drives the pipeline.
+**No Python production orchestrator or reviewer.** The agent drives stage order, creative decisions and quality review. Narrow Python adapters may expose explicit persistence APIs (for example the Backlot edit-timeline API), but they do not orchestrate stages or make creative decisions.
 
 ## Source of Truth
 
@@ -29,6 +29,7 @@ Agent reads pipeline manifest (YAML) → reads stage director skill (MD)
 - **Stage director skills:** `skills/pipelines/<pipeline>/<stage>-director.md`
 - **Meta skills:** `skills/meta/*.md` (reviewer, checkpoint-protocol, skill-creator)
 - **Architecture deep-dive:** `docs/ARCHITECTURE.md`
+- **Source-led editing contract:** `docs/EDIT_TIMELINE.md`
 
 ## Knowledge Architecture (3 Layers)
 
@@ -49,7 +50,7 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
   - Example: `tts_selector` + `elevenlabs_tts` / `google_tts` / `openai_tts` / `piper_tts`
   - Example: `video_selector` + `heygen_video` / `wan_video` / `hunyuan_video` / `ltx_video_local` / `ltx_video_modal` / `cogvideo_video`
 - **Style playbooks:** YAML defining visual language, typography, motion, audio, asset generation constraints
-- **Artifacts are canonical:** `brief`, `script`, `scene_plan`, `asset_manifest`, `edit_decisions`, `render_report`, `publish_log`
+- **Artifacts are canonical:** `brief`, `script`, `scene_plan`, `asset_manifest`, `edit_decisions`, optional `editorial_transcript`, `cut_review`, `edit_timeline`, `timeline_inspection`, `render_report`, `publish_log`
 - **Every tool inherits from `tools/base_tool.py`** (ToolContract)
 - **Checkpoint policy** lives in pipeline manifest (`human_approval_default` per stage) + `skills/meta/checkpoint-protocol.md`
 - **Reviewer** is a meta skill (`skills/meta/reviewer.md`), advisory, max 2 rounds
@@ -70,8 +71,13 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 | `tools/tool_registry.py` | Tool discovery and reporting |
 | `tools/cost_tracker.py` | Budget governance |
 | `tools/video/video_stitch.py` | Multi-clip assembly (stitch, spatial, validate, preview) |
-| `tools/video/video_compose.py` | Runtime-aware composition orchestrator — routes to Remotion / HyperFrames / FFmpeg based on `edit_decisions.render_runtime` |
+| `tools/video/video_compose.py` | Runtime-aware composition orchestrator — accepts `edit_decisions` or `edit_timeline`, then routes to Remotion / HyperFrames / FFmpeg based on `edit_decisions.render_runtime` |
 | `tools/video/hyperframes_compose.py` | HyperFrames runtime — templated workspace materialization plus authored-workspace unified `check`/`render`, FFmpeg floor check |
+| `lib/edit_timeline.py` | Shared revisioned authoring contract; normalizes legacy cuts, applies trim/reorder/zoom operations, and round-trips to renderer decisions |
+| `backlot/edit_api.py` | Backlot GET/PATCH edit-timeline endpoints with optimistic revisions and atomic persistence |
+| `tools/analysis/editorial_transcript.py` | Provider-neutral word/phrase transcript, source fingerprint and cache metadata |
+| `tools/analysis/timeline_inspector.py` | FFmpeg/Pillow filmstrip, waveform, word and silence evidence for a bounded source range |
+| `tools/analysis/cut_boundary_qa.py` | Deterministic split-word/padding checks for every adjacent cut, with optional evidence images |
 | `tools/graphics/threejs_world.py` | Local semantic 3D-world authoring with explicit blockout/production fidelity tiers, region-aware terrain, diagnostics, and HyperFrames atelier workspaces |
 | `tools/graphics/threejs_asset_catalog.py` | CC0 GLTF/GLB catalog acquisition, inventory, and provenance for production-fidelity world builds |
 | `tools/graphics/atlas_3d.py` | Atlas Cloud Tripo H3.1 text-to-3D for unique textured/PBR GLB assets |
@@ -85,6 +91,7 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 | `skills/core/hyperframes.md` | Layer 2 — when OpenMontage should pick HyperFrames vs Remotion, artifact → workspace mapping |
 | `schemas/styles/playbook.schema.json` | Playbook schema v2 with design tokens (chart_palette, scale_system, weight_matrix, color_rules) |
 | `tests/qa/` | Quality validation test scripts for tool-by-tool output inspection |
+| `tests/tools/test_editorial_editing.py` and `tests/backlot/test_edit_api.py` | Source-led editing, timeline revision and Backlot API contract coverage |
 
 ## Available Pipelines
 
@@ -103,6 +110,24 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 | `avatar-spokesperson` | `pipeline_defs/avatar-spokesperson.yaml` | Avatar presenter |
 | `localization-dub` | `pipeline_defs/localization-dub.yaml` | Localization and dubbing |
 | `framework-smoke` | `pipeline_defs/framework-smoke.yaml` | Test harness |
+
+## Source-led editing contract
+
+Footage-led pipelines may opt into the shared editing layer without changing their existing
+canonical renderer input:
+
+1. Normalize `edit_decisions.cuts` with `lib.edit_timeline.normalize_edit_decisions()`.
+2. Keep the returned `edit_timeline` under `projects/<project_id>/artifacts/edit_timeline.json`.
+3. Apply only the audited `trim`, `reorder`, `set_zoom_keyframe` and `remove_zoom_keyframe`
+   operations with an expected revision.
+4. Convert with `timeline_to_edit_decisions()` before `video_compose`.
+5. Run `cut_boundary_qa` when a timed transcript is available; attach `timeline_inspection`
+   evidence for boundaries that need human review.
+
+`video_compose` preserves renderer-only decisions while resolving a timeline. Remotion consumes
+zoom/focus keyframes; FFmpeg and the stock HyperFrames adapter fail closed when those keyframes
+are present rather than silently dropping them. See [`docs/EDIT_TIMELINE.md`](docs/EDIT_TIMELINE.md)
+for the API payload, artifact schemas, supported pipelines and licensing boundary.
 
 ## When Building New Pipelines
 

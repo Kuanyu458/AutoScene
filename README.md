@@ -21,6 +21,7 @@
 
 <p align="center">
   <a href="#fork-changes">本 Fork 修改</a> &nbsp;·&nbsp;
+  <a href="#source-editing">素材剪輯與時間軸</a> &nbsp;·&nbsp;
   <a href="#three-features">三大特點</a> &nbsp;·&nbsp;
   <a href="#workflow">工作流程圖</a> &nbsp;·&nbsp;
   <a href="#quick-start">快速開始</a> &nbsp;·&nbsp;
@@ -54,11 +55,62 @@
 | 新增錄製與音訊工具 | 新增 `playwright_recorder` 與 `audio_timing`，分別處理安全的 2D UI 錄製與節拍節點分析。 |
 | 強制功能證據 | 以 `audiomap`、`feature_evidence`、`rights_privacy_review` 與 `rough_cut_report` 驗證影片能力與素材安全。 |
 | 三個不可跳過的查核點 | 新增「素材／音樂／腳本」、「初剪版本」與「最終候選版本」三階段人工核准流程。 |
+| 素材理解與時間軸編輯 | 新增 provider-neutral `editorial_transcript`、`timeline_inspector`、`cut_boundary_qa`、revisioned `edit_timeline` 與 Backlot 編輯頁；保留既有 native renderer。 |
 | 開源與安全規範 | 補充 `SECURITY.md`、第三方授權清單、SBOM、隱私限制與版本鎖定規則。 |
 
 本 Fork 沿用上游的 Agent-first 管線架構、工具 Registry、checkpoint／artifact 契約、
 Backlot 與既有 `hybrid`、`screen-demo` 等流程；新增功能集中在獨立的
 `openmontage-video` 管線，不改變既有管線的行為。
+
+<a id="source-editing"></a>
+
+## 素材剪輯與時間軸編輯（本次更新）
+
+本 Fork 現在可把長素材的理解、剪輯查核與人工微調接到同一份可驗證資料契約：
+
+| 能力 | 入口 | 產出 |
+|---|---|---|
+| 逐字稿整理 | `editorial_transcript` | `projects/<project_id>/artifacts/editorial_transcript.json`：word timestamps、phrase groups、speaker／source metadata、silence events、source fingerprint。 |
+| 剪輯邊界 QA | `cut_boundary_qa` | `cut_review.json`：逐一檢查相鄰 cut，標示 `split_word`、`insufficient_padding`，並可附 `timeline_inspection` 證據圖。 |
+| 時間軸檢視 | `timeline_inspector` | filmstrip + waveform + word labels + silence bands 的 PNG 與 JSON sidecar。 |
+| 人機協作編輯 | Backlot `/p/<project_id>/edit` | revisioned `edit_timeline.json`，支援 trim、reorder、zoom/focus keyframe。 |
+
+`edit_timeline` 是 authoring layer，不是另一個 renderer。`video_compose` 會將它轉回既有的
+`edit_decisions`，保留字幕、音訊、overlays、bespoke 與 automation 欄位，再依提案鎖定的
+`render_runtime` 渲染。Remotion 已支援 zoom keyframes；FFmpeg 與目前的 HyperFrames stock
+adapter 遇到未支援的 keyframe 會明確阻擋，不會靜默遺失編輯。
+
+### Backlot API
+
+啟動專案 board 後，編輯頁會從 legacy `edit_decisions.json` lazy-normalize 出 revision `0`：
+
+```bash
+python -m backlot open <project_id>
+```
+
+```http
+GET   /api/project/{project_id}/edit-timeline
+PATCH /api/project/{project_id}/edit-timeline
+```
+
+PATCH body 必須包含 `base_revision` 與 `operations`。每次成功更新都以 atomic replace 遞增
+revision；過期 revision 回傳 `409`，未知操作或不合法 segment 回傳 `400`。完整 artifact、
+操作 payload、渲染限制與導入決策請參閱 [`docs/EDIT_TIMELINE.md`](docs/EDIT_TIMELINE.md)。
+
+### 適用範圍
+
+這組工具已以 optional 方式接入 `talking-head`、`clip-factory`、`podcast-repurpose`、
+`hybrid`、`screen-demo` 與 `openmontage-video`。素材導向流程可用它建立可稽核的剪輯證據；
+純生成式流程不需要額外產生這些 artifact。瀏覽器 `getDisplayMedia`、webcam／microphone
+即時捕捉、多軌 realtime capture 與 OpenVid 的 GLB mockup runtime 尚未直接導入，既有
+Playwright recorder、HyperFrames 與 Three.js／Blender 路徑維持不變。
+
+### 參考專案與授權邊界
+
+本次採用的是 clean-room、AutoScene-native 實作：沒有複製或 vendoring 任一參考專案的程式碼
+或資產。`video-use` 為 MIT；`openvid` 使用 PolyForm Noncommercial 1.0.0 source-available
+授權，並非 OSI open source。若未來要直接整合 OpenVid 或進行商用，請先完成個別授權與法務
+審查；本 repository 仍依 [`LICENSE`](LICENSE) 的 AGPLv3 發布。
 
 <a id="three-features"></a>
 
@@ -133,11 +185,12 @@ flowchart TD
 
 ### 1. 安裝依賴
 
-`$openmontage-video` 需要 Python 3.10+、FFmpeg、Node.js 22 與 Chromium。若三大能力
+`$openmontage-video` 需要 Python 3.10+、FFmpeg、Node.js 22 與 Chromium。Pillow 已包含在
+`requirements.txt`，供 timeline evidence 與既有 graphics tools 使用。若三大能力
 維持預設的 `required`，請先安裝鎖定的影片工作流依賴：
 
 ```bash
-python -m pip install -r requirements-openmontage-video.txt
+python -m pip install -r requirements.txt -r requirements-openmontage-video.txt
 cd tools/capture/playwright_runtime
 npm ci
 npx playwright install chromium
@@ -248,7 +301,11 @@ projects/<project_id>/
 │   ├── audiomap.json
 │   ├── rights_privacy_review.json
 │   ├── rough_cut_report.json
-│   └── feature_evidence.json
+│   ├── feature_evidence.json
+│   ├── editorial_transcript.json
+│   ├── cut_review.json
+│   ├── edit_timeline.json
+│   └── timeline_inspection.json
 ├── assets/                  # 自備／匯入／錄製素材
 └── renders/final.mp4        # 通過最終核准後的 H.264/AAC 母檔
 ```
@@ -267,11 +324,13 @@ projects/<project_id>/
 |---|---|
 | `.agents/skills/openmontage-video/` | Skill 契約、素材模式、安全、節拍同步與審核規則 |
 | `pipeline_defs/openmontage-video.yaml` | 獨立的 openmontage-video 階段與工具依賴 |
-| `schemas/jobs/`、`schemas/artifacts/` | job 與 `audiomap`／功能證據等產物 schema |
+| `schemas/jobs/`、`schemas/artifacts/` | job 與 `audiomap`／功能證據／editorial transcript／cut review／edit timeline 等產物 schema |
 | `tools/capture/` | Playwright 錄製器與瀏覽器執行環境 |
 | `tools/audio/` | 音樂節拍分析、節點吸附與驗證 |
+| `tools/analysis/` | 逐字稿正規化、時間軸 filmstrip/waveform 與剪輯邊界 QA |
 | `tools/video/` | HyperFrames、FFmpeg 與影片合成整合 |
-| `tests/contracts/`、`tests/tools/` | 契約、工具與 localhost smoke 測試 |
+| `lib/edit_timeline.py`、`backlot/edit_api.py` | revisioned timeline contract 與 Backlot 編輯 API |
+| `tests/contracts/`、`tests/tools/`、`tests/backlot/` | 契約、工具、timeline revision 與 Backlot smoke 測試 |
 | `AGENT_GUIDE.md` | Agent 的全域操作規範與管線治理契約 |
 | `SECURITY.md` | 安全、隱私、憑證與錄製限制 |
 | `THIRD_PARTY_NOTICES.md` | 第三方依賴、授權與 SBOM 對照 |
@@ -285,6 +344,18 @@ python -m pytest -q \
   tests/contracts/test_openmontage_video_contract.py \
   tests/contracts/test_openmontage_video_release.py \
   tests/tools/test_openmontage_video_tools.py
+```
+
+Source-led editing 的 focused tests：
+
+```bash
+python -m pytest -q \
+  tests/tools/test_editorial_editing.py \
+  tests/tools/test_edit_timeline_renderer.py \
+  tests/tools/test_timeline_inspector.py \
+  tests/tools/test_cut_evidence_contract.py \
+  tests/backlot/test_edit_api.py \
+  tests/backlot/test_editor_page.py
 ```
 
 若已安裝 Chromium，可用 `OPENMONTAGE_VIDEO_E2E=1` 執行選用的 localhost E2E 測試。
@@ -323,8 +394,9 @@ Agent 操作規範、Skill 契約與安全文件請分別參閱 [`AGENT_GUIDE.md
 ## 本 Fork 的主軸
 
 本 README 不再嵌入上游 OpenMontage 的影片案例、參考影片展示或 Backlot 展示；閱讀主軸集中在
-本 Fork 新增的 `$openmontage-video` Skill、三大特點、可重現素材流程與三個人工查核關卡。
-上游通用文件仍保留於專案目錄，請由 [`AGENT_GUIDE.md`](AGENT_GUIDE.md)、
+本 Fork 新增的 `$openmontage-video` Skill、三大特點、可重現素材流程、三個人工查核關卡，
+以及 source-led editing／revisioned timeline contract。完整操作與 API 請參閱
+[`docs/EDIT_TIMELINE.md`](docs/EDIT_TIMELINE.md)。上游通用文件仍保留於專案目錄，請由 [`AGENT_GUIDE.md`](AGENT_GUIDE.md)、
 [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) 與 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 進一步查閱。
 
 <details>

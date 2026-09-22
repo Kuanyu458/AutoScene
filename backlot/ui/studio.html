@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1120">
+  <title>Backlot Visual Studio</title>
+  <link rel="stylesheet" href="/ui/studio.css">
+</head>
+<body>
+  <main class="studio-shell" data-project-id="">
+    <header class="studio-header">
+      <div>
+        <p class="eyebrow">BACKLOT / STUDIO BETA</p>
+        <h1>Visual authoring</h1>
+        <p class="muted">Compose semantic layers and camera cues. AutoScene remains the canonical renderer.</p>
+      </div>
+      <div class="header-actions">
+        <a class="button secondary" id="edit-link" href="/">Legacy editor</a>
+        <a class="button secondary" id="back-link" href="/">Back to board</a>
+        <button class="button" id="save-button" type="button">Save changes</button>
+      </div>
+    </header>
+
+    <section class="status-row" aria-live="polite">
+      <span id="status-label">Loading Studio…</span>
+      <span id="revision-label"></span>
+    </section>
+
+    <section class="studio-grid">
+      <aside class="panel tools-panel" aria-label="Authoring tools">
+        <label class="field wide" for="segment-select">Segment</label>
+        <select id="segment-select" name="segment" class="control"></select>
+
+        <h2>Insert layer</h2>
+        <div class="tool-grid">
+          <button class="tool-button" type="button" data-add-kind="text">Text</button>
+          <button class="tool-button" type="button" data-add-kind="shape">Shape</button>
+          <button class="tool-button" type="button" data-add-kind="svg">SVG</button>
+          <button class="tool-button" type="button" data-add-kind="image">Image</button>
+          <button class="tool-button" type="button" data-add-kind="glb">GLB Mockup</button>
+        </div>
+        <label class="upload-label" for="asset-upload">Upload asset</label>
+        <input id="asset-upload" name="asset" type="file" accept=".svg,.png,.jpg,.jpeg,.webp,.glb,.mp4,.webm">
+        <p class="hint">SVG scripts and external references are rejected. Assets are stored under the project.</p>
+
+        <h2>Layers</h2>
+        <ul id="layer-list" class="layer-list" aria-label="Visual layers"></ul>
+        <p id="layer-empty" class="empty">Add a layer to begin.</p>
+      </aside>
+
+      <section class="panel canvas-panel" aria-label="Canvas preview">
+        <div class="canvas-toolbar">
+          <span class="badge" id="canvas-size">1920 × 1080</span>
+          <label class="inline-field" for="playhead-time">Preview time</label>
+          <input id="playhead-time" class="small-control" name="playhead-time" type="number" min="0" step="0.001" value="0">
+          <button id="focus-canvas" class="icon-button" type="button" aria-label="Focus canvas">Focus</button>
+        </div>
+        <div class="canvas-wrap">
+          <svg id="stage" viewBox="0 0 100 100" role="application" aria-label="Visual composition canvas" tabindex="0">
+            <rect class="stage-background" x="0" y="0" width="100" height="100"></rect>
+            <g id="stage-layers"></g>
+          </svg>
+        </div>
+        <p class="hint">Drag a layer or use arrow keys after selecting it. Coordinates are normalized for deterministic renders.</p>
+      </section>
+
+      <aside class="panel inspector-panel" aria-label="Inspector">
+        <h2>Layer inspector</h2>
+        <p id="inspector-empty" class="empty">Select a layer.</p>
+        <div id="layer-inspector" hidden>
+          <label class="field" for="layer-content">Text / content</label>
+          <textarea id="layer-content" name="content" rows="3" placeholder="Layer content…"></textarea>
+          <div class="field-grid">
+            <label class="field">X<input id="layer-x" type="number" min="0" max="1" step="0.001"></label>
+            <label class="field">Y<input id="layer-y" type="number" min="0" max="1" step="0.001"></label>
+            <label class="field">Width<input id="layer-width" type="number" min="0.001" max="1" step="0.001"></label>
+            <label class="field">Height<input id="layer-height" type="number" min="0.001" max="1" step="0.001"></label>
+            <label class="field">Rotation<input id="layer-rotation" type="number" step="1"></label>
+            <label class="field">Opacity<input id="layer-opacity" type="number" min="0" max="1" step="0.05"></label>
+          </div>
+          <div class="inspector-actions">
+            <button id="move-up" class="icon-button" type="button" aria-label="Move layer up">Move up</button>
+            <button id="move-down" class="icon-button" type="button" aria-label="Move layer down">Move down</button>
+            <button id="remove-layer" class="danger-button" type="button">Remove</button>
+          </div>
+        </div>
+
+        <h2 class="camera-heading">3D camera</h2>
+        <p class="hint">Camera tracks are serialized for HyperFrames/Blender. A GLB layer is recommended for this panel.</p>
+        <div class="field-grid camera-grid">
+          <label class="field">Time<input id="camera-time" type="number" min="0" step="0.001" value="0"></label>
+          <label class="field">FOV<input id="camera-fov" type="number" min="2" max="179" step="1" value="45"></label>
+          <label class="field">Pos X<input id="camera-px" type="number" step="0.1" value="2.4"></label>
+          <label class="field">Pos Y<input id="camera-py" type="number" step="0.1" value="1.6"></label>
+          <label class="field">Pos Z<input id="camera-pz" type="number" step="0.1" value="4.2"></label>
+          <label class="field">Target X<input id="camera-tx" type="number" step="0.1" value="0"></label>
+          <label class="field">Target Y<input id="camera-ty" type="number" step="0.1" value="0.8"></label>
+          <label class="field">Target Z<input id="camera-tz" type="number" step="0.1" value="0"></label>
+        </div>
+        <button id="add-camera-keyframe" class="button full" type="button">Add camera keyframe</button>
+        <ul id="camera-list" class="camera-list" aria-label="Camera keyframes"></ul>
+      </aside>
+    </section>
+
+    <section class="help-card">
+      <h2>Authoring contract</h2>
+      <p>Studio writes revisioned <code>visual_layers</code>, <code>camera_tracks</code>, and <code>asset_manifest</code> fields. Preview is browser-native; final output still goes through the selected AutoScene renderer.</p>
+      <p class="muted">If another Agent or reviewer saves first, the revision conflict is shown and no changes are overwritten.</p>
+    </section>
+  </main>
+  <script src="/ui/studio.js"></script>
+</body>
+</html>

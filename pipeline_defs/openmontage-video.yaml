@@ -105,7 +105,10 @@ stages:
       - brief
     produces:
       - script
-    tools_available: []
+    optional_tools:
+      - editorial_transcript
+    tools_available:
+      - editorial_transcript
     checkpoint_required: true
     human_approval_default: true
     review_focus:
@@ -176,8 +179,13 @@ stages:
     produces:
       - edit_decisions
       - rough_cut_report
+    optional_tools:
+      - cut_boundary_qa
+      - timeline_inspector
     tools_available:
       - audio_timing
+      - cut_boundary_qa
+      - timeline_inspector
     checkpoint_required: true
     human_approval_default: true
     review_focus:
@@ -206,11 +214,13 @@ stages:
     required_tools:
       - video_compose
     optional_tools:
+      - timeline_inspector
       - hyperframes_compose
       - audio_mixer
       - audio_timing
     tools_available:
       - video_compose
+      - timeline_inspector
       - hyperframes_compose
       - audio_mixer
       - audio_timing
