@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/rights_privacy_review",
+  "title": "Rights and Privacy Review",
+  "type": "object",
+  "required": ["version", "status", "checks"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "status": { "type": "string", "enum": ["pass", "fail", "blocked", "awaiting_human"] },
+    "checks": {
+      "type": "object",
+      "required": ["rights", "privacy", "origins", "credentials"],
+      "properties": {
+        "rights": { "type": "string", "enum": ["pass", "fail", "unknown"] },
+        "privacy": { "type": "string", "enum": ["pass", "fail", "unknown"] },
+        "origins": { "type": "string", "enum": ["pass", "fail", "unknown"] },
+        "credentials": { "type": "string", "enum": ["pass", "fail", "unknown"] }
+      },
+      "additionalProperties": true
+    },
+    "items": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "blocked_reasons": { "type": "array", "items": { "type": "string" } },
+    "reviewed_at": { "type": "string" },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true
+}

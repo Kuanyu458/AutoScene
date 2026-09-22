@@ -1,0 +1,10 @@
+{
+  "name": "openmontage-playwright-runtime",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": { "node": ">=22 <23" },
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}

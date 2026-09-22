@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/timeline_inspection",
+  "title": "Timeline Inspection",
+  "description": "Filmstrip, waveform, timed-word and silence evidence for an arbitrary source range.",
+  "type": "object",
+  "required": ["version", "input_path", "range", "frames", "words", "silence_bands", "output_path"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "input_path": { "type": "string" },
+    "range": {
+      "type": "object",
+      "required": ["start_seconds", "end_seconds"],
+      "properties": {
+        "start_seconds": { "type": "number", "minimum": 0 },
+        "end_seconds": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["timestamp_seconds", "path"],
+        "properties": {
+          "timestamp_seconds": { "type": "number", "minimum": 0 },
+          "path": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "words": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "silence_bands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["start", "end", "duration"],
+        "properties": {
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "minimum": 0 },
+          "duration": { "type": "number", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "waveform_available": { "type": "boolean" },
+    "output_path": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/editorial_transcript",
+  "title": "Editorial Transcript",
+  "description": "Provider-neutral word transcript plus compact phrase groups for source-led editing.",
+  "type": "object",
+  "required": ["version", "source_fingerprint", "words", "phrases"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "source_id": { "type": ["string", "null"] },
+    "source_path": { "type": ["string", "null"] },
+    "source_fingerprint": { "type": "string", "minLength": 1 },
+    "audio_track": { "type": ["integer", "string", "null"] },
+    "provider": { "type": "string" },
+    "model": { "type": ["string", "null"] },
+    "language": { "type": ["string", "null"] },
+    "words": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "start", "end", "text"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "minimum": 0 },
+          "text": { "type": "string" },
+          "speaker": { "type": ["string", "integer", "null"] },
+          "source_id": { "type": ["string", "null"] },
+          "confidence": { "type": ["number", "string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "phrases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "start", "end", "text", "word_start", "word_end"],
+        "properties": {
+          "id": { "type": "string" },
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "minimum": 0 },
+          "text": { "type": "string" },
+          "word_start": { "type": "integer", "minimum": 0 },
+          "word_end": { "type": "integer", "minimum": 0 },
+          "speaker": { "type": ["string", "integer", "null"] },
+          "source_id": { "type": ["string", "null"] },
+          "audio_events": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "audio_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["start", "end", "type"],
+        "properties": {
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "minimum": 0 },
+          "type": { "type": "string" },
+          "confidence": { "type": ["number", "string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "cache_key": { "type": "string", "minLength": 1 },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": false
+}

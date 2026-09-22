@@ -100,6 +100,13 @@ class VideoCompose(BaseTool):
                 "type": "object",
                 "description": "Full edit_decisions artifact (required for compose/render)",
             },
+            "edit_timeline": {
+                "type": "object",
+                "description": (
+                    "Shared agent/UI edit_timeline artifact. When supplied, it "
+                    "overrides cuts while preserving any base edit_decisions fields."
+                ),
+            },
             "asset_manifest": {
                 "type": "object",
                 "description": (
@@ -338,6 +345,19 @@ class VideoCompose(BaseTool):
         operation = inputs["operation"]
         start = time.time()
 
+        # The authoring UI and agents may provide the shared timeline directly.
+        # Resolve it once at the dispatcher boundary so every operation,
+        # including wrappers/mocks around _compose, sees canonical decisions.
+        if inputs.get("edit_timeline") is not None:
+            from lib.edit_timeline import timeline_to_edit_decisions
+            inputs = dict(inputs)
+            inputs["edit_decisions"] = timeline_to_edit_decisions(
+                inputs["edit_timeline"],
+                base_decisions=inputs.get("edit_decisions")
+                if isinstance(inputs.get("edit_decisions"), dict) else None,
+            )
+            inputs.pop("edit_timeline", None)
+
         try:
             if operation == "compose":
                 result = self._compose(inputs)
@@ -443,8 +463,23 @@ class VideoCompose(BaseTool):
         directly only for pure video pipelines (e.g. talking-head).
         """
         edit_decisions = inputs.get("edit_decisions")
+        if inputs.get("edit_timeline") is not None:
+            from lib.edit_timeline import timeline_to_edit_decisions
+            edit_decisions = timeline_to_edit_decisions(
+                inputs["edit_timeline"],
+                base_decisions=edit_decisions if isinstance(edit_decisions, dict) else None,
+            )
         if not edit_decisions:
-            return ToolResult(success=False, error="edit_decisions required for compose")
+            return ToolResult(success=False, error="edit_decisions or edit_timeline required for compose")
+        if edit_decisions.get("zoom_keyframes"):
+            return ToolResult(
+                success=False,
+                error=(
+                    "FFmpeg compose cannot render edit_timeline zoom_keyframes. "
+                    "Use render_runtime='remotion' or remove the keyframes before "
+                    "choosing the FFmpeg runtime."
+                ),
+            )
 
         output_path = Path(inputs.get("output_path", "composed_output.mp4"))
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1532,9 +1567,15 @@ class VideoCompose(BaseTool):
         profile, subtitle_path, audio_path, and options.
         """
         edit_decisions = inputs.get("edit_decisions")
+        if inputs.get("edit_timeline") is not None:
+            from lib.edit_timeline import timeline_to_edit_decisions
+            edit_decisions = timeline_to_edit_decisions(
+                inputs["edit_timeline"],
+                base_decisions=edit_decisions if isinstance(edit_decisions, dict) else None,
+            )
         asset_manifest = inputs.get("asset_manifest")
         if not edit_decisions:
-            return ToolResult(success=False, error="edit_decisions required for render")
+            return ToolResult(success=False, error="edit_decisions or edit_timeline required for render")
 
         # --- Runtime routing: honor render_runtime locked at proposal ---
         # Silent swaps are forbidden by governance. Resolve this before any
@@ -1563,6 +1604,25 @@ class VideoCompose(BaseTool):
                     f"Unknown render_runtime {render_runtime!r}. "
                     f"Valid values: remotion, hyperframes, ffmpeg. "
                     f"render_runtime must be set at proposal stage."
+                ),
+            )
+
+        if render_runtime == "ffmpeg" and edit_decisions.get("zoom_keyframes"):
+            return ToolResult(
+                success=False,
+                error=(
+                    "render_runtime='ffmpeg' cannot render edit_timeline "
+                    "zoom_keyframes. Keep the proposal on Remotion or remove "
+                    "the keyframes; do not silently swap runtimes."
+                ),
+            )
+        if render_runtime == "hyperframes" and edit_decisions.get("zoom_keyframes"):
+            return ToolResult(
+                success=False,
+                error=(
+                    "The stock HyperFrames adapter does not yet consume "
+                    "edit_timeline zoom_keyframes. Keep the proposal on Remotion "
+                    "or remove the keyframes; do not silently drop the edit."
                 ),
             )
 
@@ -1827,6 +1887,15 @@ class VideoCompose(BaseTool):
             hf_inputs["playbook"] = playbook_data
         if profile:
             hf_inputs["profile"] = profile
+        locked_hf_version = (
+            inputs.get("hyperframes_version")
+            or (edit_decisions.get("metadata") or {}).get("hyperframes_version")
+        )
+        if locked_hf_version:
+            spec = str(locked_hf_version)
+            hf_inputs["hyperframes_package"] = (
+                spec if spec.startswith("hyperframes@") else f"hyperframes@{spec}"
+            )
         if "quality" in inputs:
             hf_inputs["quality"] = inputs["quality"]
         if "fps" in inputs:

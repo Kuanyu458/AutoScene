@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/feature_evidence",
+  "title": "OpenMontage Feature Evidence",
+  "description": "Evidence that the three openmontage-video capabilities were applied or explicitly disabled.",
+  "type": "object",
+  "required": ["version", "features"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "features": {
+      "type": "object",
+      "required": ["beat_sync", "ui_3d", "ui_capture"],
+      "properties": {
+        "beat_sync": { "$ref": "#/$defs/evidence" },
+        "ui_3d": { "$ref": "#/$defs/evidence" },
+        "ui_capture": { "$ref": "#/$defs/evidence" }
+      },
+      "additionalProperties": false
+    },
+    "runtime": { "type": "object", "additionalProperties": true },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "required": ["status", "evidence"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "fail", "off", "blocked"] },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "artifact_paths": { "type": "array", "items": { "type": "string" } },
+        "decision_log_ref": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

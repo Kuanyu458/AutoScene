@@ -1,0 +1,7 @@
+interface:
+  display_name: "OpenMontage Video"
+  short_description: "Automated product video with safe UI capture"
+  brand_color: "#2563EB"
+  default_prompt: "Use $openmontage-video to create a reproducible product video from my media or a safe browser recording."
+policy:
+  allow_implicit_invocation: true

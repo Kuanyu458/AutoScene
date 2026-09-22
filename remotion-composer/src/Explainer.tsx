@@ -187,6 +187,15 @@ const AnimatedBackground: React.FC<{ theme: ThemeConfig }> = ({ theme }) => {
 // Types — aligned with edit_decisions artifact schema
 // ---------------------------------------------------------------------------
 
+interface ZoomKeyframe {
+  segment_id: string;
+  time_seconds: number;
+  scale: number;
+  x: number;
+  y: number;
+  easing?: string;
+}
+
 interface Cut {
   id: string;
   source: string;
@@ -308,6 +317,7 @@ export interface ExplainerProps {
   overlays?: Overlay[];
   captions?: WordCaption[];
   audio?: AudioConfig;
+  zoom_keyframes?: ZoomKeyframe[];
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +335,51 @@ function isImage(source: string): boolean {
 function isVideo(source: string): boolean {
   const lower = source.toLowerCase();
   return VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+function easeZoomProgress(value: number, easing?: string): number {
+  const name = (easing || "linear").toLowerCase();
+  if (name === "ease-in") return value * value;
+  if (name === "ease-out") return 1 - (1 - value) * (1 - value);
+  if (name === "ease-in-out") return value < 0.5
+    ? 2 * value * value
+    : 1 - Math.pow(-2 * value + 2, 2) / 2;
+  return value;
+}
+
+function zoomAtTime(
+  keyframes: ZoomKeyframe[] | undefined,
+  timeSeconds: number,
+): { scale: number; x: number; y: number } {
+  const sorted = (keyframes || [])
+    .filter((keyframe) => Number.isFinite(keyframe.time_seconds))
+    .slice()
+    .sort((a, b) => a.time_seconds - b.time_seconds);
+  if (sorted.length === 0) return { scale: 1, x: 0.5, y: 0.5 };
+  if (timeSeconds <= sorted[0].time_seconds) {
+    return { scale: sorted[0].scale, x: sorted[0].x, y: sorted[0].y };
+  }
+  const last = sorted[sorted.length - 1];
+  if (timeSeconds >= last.time_seconds) {
+    return { scale: last.scale, x: last.x, y: last.y };
+  }
+  for (let index = 1; index < sorted.length; index += 1) {
+    const previous = sorted[index - 1];
+    const next = sorted[index];
+    if (timeSeconds <= next.time_seconds) {
+      const span = Math.max(next.time_seconds - previous.time_seconds, 0.001);
+      const progress = easeZoomProgress(
+        Math.min(1, Math.max(0, (timeSeconds - previous.time_seconds) / span)),
+        next.easing || previous.easing,
+      );
+      return {
+        scale: previous.scale + (next.scale - previous.scale) * progress,
+        x: previous.x + (next.x - previous.x) * progress,
+        y: previous.y + (next.y - previous.y) * progress,
+      };
+    }
+  }
+  return { scale: last.scale, x: last.x, y: last.y };
 }
 
 // ---------------------------------------------------------------------------
@@ -424,6 +479,7 @@ const VideoScene: React.FC<{
   transitionOut?: string;
   transitionDuration?: number;
   sceneDurationSeconds: number;
+  zoomKeyframes?: ZoomKeyframe[];
   backgroundColor?: string;
 }> = ({
   src,
@@ -432,6 +488,7 @@ const VideoScene: React.FC<{
   transitionOut,
   transitionDuration,
   sceneDurationSeconds,
+  zoomKeyframes,
   backgroundColor = "#0F172A",
 }) => {
   const frame = useCurrentFrame();
@@ -457,9 +514,10 @@ const VideoScene: React.FC<{
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp",
       });
+  const zoom = zoomAtTime(zoomKeyframes, frame / fps);
 
   return (
-    <AbsoluteFill style={{ background: backgroundColor }}>
+    <AbsoluteFill style={{ background: backgroundColor, overflow: "hidden" }}>
       <OffthreadVideo
         src={resolveAsset(src)}
         startFrom={Math.round(startFrom * fps)}
@@ -468,6 +526,9 @@ const VideoScene: React.FC<{
           height: "100%",
           objectFit: "cover",
           opacity: fadeIn * fadeOut,
+          transform: "scale(" + zoom.scale + ")",
+          transformOrigin: (zoom.x * 100) + "% " + (zoom.y * 100) + "%",
+          willChange: "transform",
         }}
         muted
       />
@@ -555,7 +616,14 @@ const BackgroundVideoLayer: React.FC<{
   );
 };
 
-const SceneRenderer: React.FC<{ cut: Cut; theme: ThemeConfig }> = ({ cut, theme }) => {
+const SceneRenderer: React.FC<{
+  cut: Cut;
+  theme: ThemeConfig;
+  zoomKeyframes?: ZoomKeyframe[];
+}> = ({ cut, theme, zoomKeyframes }) => {
+  const cutZoomKeyframes = (zoomKeyframes || []).filter(
+    (keyframe) => keyframe.segment_id === cut.id,
+  );
   // Wrap component with background video or image if specified
   const maybeWrapWithBg = (element: React.ReactElement) => {
     if (cut.backgroundVideo) {
@@ -760,6 +828,7 @@ const SceneRenderer: React.FC<{ cut: Cut; theme: ThemeConfig }> = ({ cut, theme 
         transitionOut={cut.transition_out}
         transitionDuration={cut.transition_duration}
         sceneDurationSeconds={cut.out_seconds - cut.in_seconds}
+        zoomKeyframes={cutZoomKeyframes}
         backgroundColor={cut.backgroundColor}
       />,
     );
@@ -835,7 +904,7 @@ const OverlayRenderer: React.FC<{ overlay: Overlay; theme: ThemeConfig }> = ({
 // ---------------------------------------------------------------------------
 
 export const Explainer: React.FC<ExplainerProps> = (props) => {
-  const { cuts, overlays, captions, audio } = props;
+  const { cuts, overlays, captions, audio, zoom_keyframes } = props;
   const { fps, durationInFrames } = useVideoConfig();
 
   // Resolve theme from props — playbook name, theme name, or custom themeConfig
@@ -853,7 +922,11 @@ export const Explainer: React.FC<ExplainerProps> = (props) => {
 
         return (
           <Sequence key={cut.id} from={from} durationInFrames={duration}>
-            <SceneRenderer cut={cut} theme={theme} />
+            <SceneRenderer
+              cut={cut}
+              theme={theme}
+              zoomKeyframes={zoom_keyframes}
+            />
           </Sequence>
         );
       })}

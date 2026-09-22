@@ -216,6 +216,10 @@ class HyperFramesCompose(BaseTool):
                 "default": False,
                 "description": "Save representative quality-check snapshots.",
             },
+            "hyperframes_package": {
+                "type": "string",
+                "description": "Optional exact npm package spec, e.g. hyperframes@0.7.109. Used by the dedicated openmontage-video pipeline.",
+            },
         },
     }
 
@@ -457,6 +461,9 @@ class HyperFramesCompose(BaseTool):
     # ------------------------------------------------------------------
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
+        # A dedicated pipeline may pin the npm package without changing the
+        # legacy unpinned behavior of existing hybrid/screen-demo callers.
+        self._active_package_spec = inputs.get("hyperframes_package") or self._NPM_PACKAGE
         operation = inputs["operation"]
         start = time.time()
         try:
@@ -1360,7 +1367,8 @@ class HyperFramesCompose(BaseTool):
         want to raise CalledProcessError on non-zero exits — the caller
         parses lint/validate/render exit codes itself.
         """
-        cmd = ["npx", "--yes", "hyperframes", *args]
+        package_spec = getattr(self, "_active_package_spec", self._NPM_PACKAGE)
+        cmd = ["npx", "--yes", package_spec, *args]
         # On Windows, resolve the .cmd wrapper so subprocess can find it
         # without shell=True.
         if os.name == "nt":

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backlot Edit Overrides</title>
+  <link rel="stylesheet" href="/ui/editor.css">
+</head>
+<body>
+  <main class="editor-shell" data-project-id="">
+    <header class="editor-header">
+      <div>
+        <p class="eyebrow">BACKLOT / EDIT OVERRIDES</p>
+        <h1>Timeline authoring</h1>
+        <p class="muted">Adjust the agent timeline; the native AutoScene renderer remains canonical.</p>
+      </div>
+      <div class="header-actions">
+        <a class="button secondary" id="back-link" href="/">Back to board</a>
+        <button class="button" id="save-button" type="button">Save overrides</button>
+      </div>
+    </header>
+
+    <section class="status-row" aria-live="polite">
+      <span id="status-label">Loading timeline…</span>
+      <span id="revision-label"></span>
+    </section>
+
+    <section class="timeline-card">
+      <div class="timeline-scale"><span>0s</span><span>timeline</span><span id="duration-label">0s</span></div>
+      <div id="segments" class="segments" aria-label="Timeline segments"></div>
+      <p id="empty-state" class="empty" hidden>No edit decisions found for this project.</p>
+    </section>
+
+    <section class="help-card">
+      <h2>How this editor works</h2>
+      <p>Changes are saved as revisioned <code>edit_timeline</code> operations. Preview and final output continue through the selected AutoScene runtime.</p>
+      <p class="muted">A stale revision is rejected instead of overwriting another Agent or reviewer.</p>
+    </section>
+  </main>
+  <script src="/ui/editor.js"></script>
+</body>
+</html>

@@ -2,7 +2,8 @@
 
 The watcher observes ``projects/`` with watchfiles; on any change it bumps a
 per-project version and wakes SSE subscribers, who tell the browser to
-refetch state. The server never writes to project directories.
+refetch state. The board routes remain read-only; the edit-timeline route
+performs explicit, atomic authoring writes.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from backlot.state import PROJECTS_DIR, REPO_ROOT, list_projects, load_board_state, summarize_project
+from backlot.edit_api import register_edit_routes
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
 THUMB_CACHE_DIR = REPO_ROOT / ".backlot" / "thumbs"
@@ -164,6 +166,11 @@ async def _lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Backlot", docs_url=None, redoc_url=None, lifespan=_lifespan)
+    register_edit_routes(
+        app,
+        _safe_project_dir,
+        on_changed=lambda project_id: (_invalidate_summary(project_id), hub.publish(project_id)),
+    )
 
     # ---- API ----------------------------------------------------------
 
@@ -276,6 +283,16 @@ def create_app() -> FastAPI:
         return FileResponse(target)
 
     # ---- UI ------------------------------------------------------------
+
+    @app.get("/p/{project_id}/edit")
+    async def editor_page(project_id: str) -> HTMLResponse:
+        _safe_project_dir(project_id)
+        return _ui_html("editor.html", ("editor.css", "editor.js"))
+
+    @app.get("/p/{project_id}/studio")
+    async def studio_page(project_id: str) -> HTMLResponse:
+        _safe_project_dir(project_id)
+        return _ui_html("studio.html", ("studio.css", "studio.js"))
 
     @app.get("/p/{project_id}")
     async def board_page(project_id: str) -> HTMLResponse:

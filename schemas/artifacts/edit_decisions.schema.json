@@ -66,6 +66,23 @@
         "additionalProperties": false
       }
     },
+    "zoom_keyframes": {
+      "type": "array",
+      "description": "Optional revisioned zoom/focus keyframes authored in edit_timeline.",
+      "items": {
+        "type": "object",
+        "required": ["segment_id", "time_seconds", "scale", "x", "y"],
+        "properties": {
+          "segment_id": { "type": "string" },
+          "time_seconds": { "type": "number", "minimum": 0 },
+          "scale": { "type": "number", "minimum": 1 },
+          "x": { "type": "number", "minimum": 0, "maximum": 1 },
+          "y": { "type": "number", "minimum": 0, "maximum": 1 },
+          "easing": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
     "overlays": {
       "type": "array",
       "items": {
@@ -193,6 +210,18 @@
         "required": ["type", "at_seconds", "duration_seconds"]
       }
     },
+    "canvas": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "coordinate_space": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "visual_layers": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "camera_tracks": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "studio_asset_manifest": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
     "renderer_family": {
       "type": "string",
       "enum": ["explainer-data", "explainer-teacher", "cinematic-trailer", "documentary-montage", "product-reveal", "screen-demo", "presenter", "animation-first"],
@@ -230,6 +259,56 @@
         "average": { "type": "number" },
         "verdict": { "type": "string", "enum": ["strong", "acceptable", "revise", "fail"] }
       }
+    },
+    "automation": {
+      "type": "object",
+      "description": "OpenMontage automation evidence. Optional for backward compatibility.",
+      "properties": {
+        "beat_sync": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "audiomap_path": { "type": "string" },
+            "snap_tolerance_ms": { "type": "number", "minimum": 0 },
+            "semantic_locked": { "type": "boolean" },
+            "markers": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+          },
+          "additionalProperties": true
+        },
+        "ui_focus_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["scene_id", "focus_count"],
+            "properties": {
+              "scene_id": { "type": "string" },
+              "focus_count": { "type": "integer", "minimum": 0, "maximum": 1 },
+              "scale": { "type": "number", "minimum": 1, "maximum": 2 },
+              "anchor": { "type": "object", "additionalProperties": true },
+              "event": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "ui_3d_scenes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["scene_id", "planes", "perspective"],
+            "properties": {
+              "scene_id": { "type": "string" },
+              "planes": { "type": "integer", "minimum": 2 },
+              "perspective": { "type": "number", "exclusiveMinimum": 0 },
+              "translate_z": { "type": "array", "items": { "type": "number" } },
+              "rotation": { "type": "object", "additionalProperties": true },
+              "motion_direction": { "type": "string" },
+              "no_global_shake": { "type": "boolean" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
     },
     "metadata": { "type": "object" }
   },

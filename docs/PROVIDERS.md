@@ -1175,6 +1175,11 @@ HyperFrames workspaces live under `projects/<project-name>/hyperframes/`. Final 
 
 **Cost:** Free. Always local.
 
+For source-led edits, `video_compose` also accepts the shared `edit_timeline` artifact and
+round-trips it to `edit_decisions` before rendering. Remotion consumes `zoom_keyframes`; FFmpeg
+and the stock HyperFrames adapter block unsupported keyframes rather than silently dropping them.
+See [`docs/EDIT_TIMELINE.md`](EDIT_TIMELINE.md) for the authoring API and artifact contract.
+
 ---
 
 ### Piper TTS — Offline Text-to-Speech
@@ -1393,8 +1398,11 @@ These tools require only FFmpeg or Python packages — no GPU, no API key.
 
 | Tool | Install | What it does |
 |------|---------|-------------|
-| **FFmpeg tools** (video_compose, video_stitch, video_trimmer, audio_mixer, audio_enhance, color_grade, face_enhance, frame_sampler, scene_detect) | `brew install ffmpeg` / `sudo apt install ffmpeg` / `winget install FFmpeg` | Video editing, audio processing, color grading, analysis |
+| **FFmpeg tools** (video_compose, video_stitch, video_trimmer, audio_mixer, audio_enhance, color_grade, face_enhance, frame_sampler, scene_detect, timeline_inspector) | `brew install ffmpeg` / `sudo apt install ffmpeg` / `winget install FFmpeg` | Video editing, audio processing, color grading, analysis and timeline evidence |
 | **Transcriber** | `pip install faster-whisper` | Speech-to-text with word-level timestamps |
+| **Editorial Transcript** | No additional install; accepts Whisper/WhisperX JSON | Phrase grouping, CJK-safe text, source fingerprint and cache metadata |
+| **Timeline Inspector** | FFmpeg + Pillow (`pip install Pillow`) | Filmstrip, waveform, timed words and silence bands for a bounded source range |
+| **Cut Boundary QA** | No additional install; FFmpeg/Pillow needed for optional evidence images | Split-word and cut-padding checks for every adjacent boundary |
 | **Background Remove** | `pip install rembg` (CPU) or `pip install rembg[gpu]` | Remove image/video backgrounds |
 | **Upscale** | `pip install realesrgan` (requires PyTorch + CUDA) | Real-ESRGAN image/video upscaling |
 | **Face Restore** | `pip install gfpgan` (requires PyTorch) | CodeFormer/GFPGAN face restoration |
@@ -1449,13 +1457,19 @@ How many providers cover each capability:
 | **Text-to-Speech** | Azure AI Speech, ElevenLabs, fish.audio, Google TTS, Kling Official, OpenAI | Piper | Piper, Google free tier, ElevenLabs free tier, Azure free tier, fish.audio s2.1-pro-free |
 | **Music Generation** | ElevenLabs, Suno, Google Lyria | — | ElevenLabs free tier |
 | **Post-Production** | — | FFmpeg (compose, stitch, trim, mix, enhance, grade) | All free |
-| **Analysis** | — | WhisperX, Scene Detect, Frame Sampler, CLIP/BLIP-2 | All free |
+| **Analysis** | — | WhisperX, Scene Detect, Frame Sampler, CLIP/BLIP-2, Editorial Transcript, Timeline Inspector, Cut Boundary QA | All free |
 | **Enhancement** | — | Upscale, BG Remove, Face Enhance, Face Restore | All free |
 | **Avatar** | Kling Official | SadTalker, Wav2Lip | Local tools are free |
 
 ---
 
 ## FAQ
+
+**Q: Can I edit source footage with a shared timeline?**
+A: Yes. Footage-led pipelines can normalize `edit_decisions` into a revisioned `edit_timeline`,
+edit it from Backlot, and pass it back through `video_compose`. `editorial_transcript`,
+`timeline_inspector` and `cut_boundary_qa` are local, optional analysis tools; generated-only
+pipelines do not need them. See [`docs/EDIT_TIMELINE.md`](EDIT_TIMELINE.md).
 
 **Q: What's the absolute minimum I need to produce a video?**
 A: FFmpeg + Node.js (both free, local). FFmpeg handles video assembly, audio mixing, and subtitles. With Node.js, Remotion renders still images into animated video — so even without any video generation API, the agent generates images and Remotion turns them into professional-looking video with spring animations, text cards, and transitions. Add Piper TTS for free narration and Pexels/Pixabay for free stock footage.

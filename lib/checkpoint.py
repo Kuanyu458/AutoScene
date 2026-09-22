@@ -248,7 +248,47 @@ def init_project(
     return project_dir
 
 
-def _stage_requires_approval(pipeline_type: Optional[str], stage: str) -> Optional[bool]:
+def _job_allows_autonomous(
+    pipeline_dir: Path | None,
+    project_id: str | None,
+    pipeline_type: Optional[str],
+) -> bool:
+    """Return true only for an explicitly authorized openmontage-video job.
+
+    The normal guided gate remains the default for every pipeline.  This small
+    exception lets the dedicated skill honor ``approvals.mode: autonomous``
+    without weakening the manifest or allowing a malformed job to bypass a
+    checkpoint.  Runtime, rights, privacy, and credential blockers are still
+    enforced by the stage directors and artifacts.
+    """
+    if pipeline_type != "openmontage-video" or pipeline_dir is None or not project_id:
+        return False
+    job_path = pipeline_dir / project_id / "job.yaml"
+    if not job_path.is_file():
+        return False
+    try:
+        import yaml
+        with open(job_path, encoding="utf-8") as handle:
+            job = yaml.safe_load(handle) or {}
+        return bool(
+            isinstance(job, dict)
+            and job.get("version") == "1.0"
+            and job.get("project_id") == project_id
+            and all(key in job for key in ("source", "recording", "music", "features", "edit", "output"))
+            and (job.get("approvals") or {}).get("mode") == "autonomous"
+            and (job.get("metadata") or {}).get("autonomous_authorization") is True
+        )
+    except Exception:
+        return False
+
+
+def _stage_requires_approval(
+    pipeline_type: Optional[str],
+    stage: str,
+    *,
+    pipeline_dir: Path | None = None,
+    project_id: str | None = None,
+) -> Optional[bool]:
     """Read human_approval_default for a stage from its pipeline manifest.
 
     Returns None when the stage isn't declared in the manifest or no
@@ -278,7 +318,10 @@ def _stage_requires_approval(pipeline_type: Optional[str], stage: str) -> Option
             "the caller's human_approval_required flag.", pipeline_type, exc,
         )
         return None
-    return get_stage_human_approval_default(manifest, stage)
+    required = get_stage_human_approval_default(manifest, stage)
+    if required and _job_allows_autonomous(pipeline_dir, project_id, pipeline_type):
+        return False
+    return required
 
 
 def _enforce_stage_prerequisites(
@@ -328,7 +371,12 @@ def _enforce_stage_prerequisites(
         if checkpoint.get("status") != "completed":
             incomplete.append(predecessor)
             continue
-        if _stage_requires_approval(pipeline_type, predecessor) and not checkpoint.get(
+        if _stage_requires_approval(
+            pipeline_type,
+            predecessor,
+            pipeline_dir=pipeline_dir,
+            project_id=project_id,
+        ) and not checkpoint.get(
             "human_approved"
         ):
             unapproved.append(predecessor)
@@ -474,7 +522,12 @@ def write_checkpoint(
     # Enforcement happens at write time only: pre-existing checkpoints written
     # before gating (or by hand) still read as completed — deliberate
     # back-compat so in-flight and legacy projects keep resuming.
-    manifest_gate = _stage_requires_approval(pipeline_type, stage)
+    manifest_gate = _stage_requires_approval(
+        pipeline_type,
+        stage,
+        pipeline_dir=pipeline_dir,
+        project_id=project_id,
+    )
     gated = bool(manifest_gate) or human_approval_required
     if gated:
         human_approval_required = True

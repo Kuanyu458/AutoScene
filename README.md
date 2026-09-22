@@ -9,27 +9,368 @@
 
 <h1 align="center">OpenMontage</h1>
 
-<p align="center"><strong>The first open-source, agentic video production system.</strong></p>
+<p align="center"><strong>開源、由 Agent 驅動的影片製作系統。</strong></p>
+
+> 本專案是基於 [OpenMontage](https://github.com/calesthio/OpenMontage) 的 AGPLv3 開源 Fork，
+> 新增 [`$openmontage-video`](.agents/skills/openmontage-video/SKILL.md) Skill，讓使用者可以
+> 使用自備素材、Agent 自動錄製素材，或混合兩者製作可重現的產品影片。
 
 <p align="center">
   <a href="https://openmontage.video"><img src="https://img.shields.io/badge/Website-openmontage.video-d14a28?style=for-the-badge" alt="openmontage.video"></a>
 </p>
 
 <p align="center">
-  <a href="#start-from-a-video-you-already-love">Paste A Video</a> &nbsp;·&nbsp;
-  <a href="#quick-start">Quick Start</a> &nbsp;·&nbsp;
-  <a href="#try-these-prompts">Try These Prompts</a> &nbsp;·&nbsp;
-  <a href="#pipelines">Pipelines</a> &nbsp;·&nbsp;
-  <a href="#how-it-works">How It Works</a> &nbsp;·&nbsp;
+  <a href="#fork-changes">本 Fork 修改</a> &nbsp;·&nbsp;
+  <a href="#source-editing">素材剪輯與時間軸</a> &nbsp;·&nbsp;
+  <a href="#three-features">三大特點</a> &nbsp;·&nbsp;
+  <a href="#workflow">工作流程圖</a> &nbsp;·&nbsp;
+  <a href="#quick-start">快速開始</a> &nbsp;·&nbsp;
+  <a href="#openmontage-video">OpenMontage 影片</a> &nbsp;·&nbsp;
   <a href="#sponsors">Sponsors</a> &nbsp;·&nbsp;
-  <a href="docs/PROVIDERS.md">Providers</a> &nbsp;·&nbsp;
-  <a href="docs/PR_REVIEW_GUIDE.md">Review Guide</a> &nbsp;·&nbsp;
   <a href="AGENT_GUIDE.md">Agent Guide</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License"></a>
+  <a href="#本-fork-修改內容"><img src="https://img.shields.io/badge/status-beta-f0ad4e.svg" alt="Beta status"></a>
+  <a href="https://github.com/calesthio/OpenMontage"><img src="https://img.shields.io/badge/upstream-OpenMontage-6f42c1.svg" alt="Upstream OpenMontage"></a>
 </p>
+
+<a id="fork-changes"></a>
+
+## 本 Fork 修改內容
+
+本專案是基於 [OpenMontage](https://github.com/calesthio/OpenMontage) 的 AGPLv3
+開源 Fork，新增可獨立呼叫的
+[`$openmontage-video`](.agents/skills/openmontage-video/SKILL.md) Skill。使用者可以
+自行提供素材、讓 Agent 依流程錄製素材，或混合使用兩者，並以可重現、可稽核的方式
+自動完成產品影片剪輯。本專案目前為非官方 Fork；上游的其他管線與既有行為仍保留。
+
+目前已完成的主要修改：
+
+| 修改項目 | 說明 |
+|---|---|
+| 新增影片 Skill 與管線 | 新增 `.agents/skills/openmontage-video/`、`pipeline_defs/openmontage-video.yaml`、job schema 與確定性驗證器。 |
+| 支援三種素材來源 | 支援 `provided`（自備）、`record`（Agent 錄製）與 `mixed`（混合）模式。 |
+| 新增錄製與音訊工具 | 新增 `playwright_recorder` 與 `audio_timing`，分別處理安全的 2D UI 錄製與節拍節點分析。 |
+| 強制功能證據 | 以 `audiomap`、`feature_evidence`、`rights_privacy_review` 與 `rough_cut_report` 驗證影片能力與素材安全。 |
+| 三個不可跳過的查核點 | 新增「素材／音樂／腳本」、「初剪版本」與「最終候選版本」三階段人工核准流程。 |
+| 素材理解與時間軸編輯 | 新增 provider-neutral `editorial_transcript`、`timeline_inspector`、`cut_boundary_qa`、revisioned `edit_timeline` 與 Backlot 編輯頁；保留既有 native renderer。 |
+| 開源與安全規範 | 補充 `SECURITY.md`、第三方授權清單、SBOM、隱私限制與版本鎖定規則。 |
+
+本 Fork 沿用上游的 Agent-first 管線架構、工具 Registry、checkpoint／artifact 契約、
+Backlot 與既有 `hybrid`、`screen-demo` 等流程；新增功能集中在獨立的
+`openmontage-video` 管線，不改變既有管線的行為。
+
+<a id="source-editing"></a>
+
+## 素材剪輯與時間軸編輯（本次更新）
+
+本 Fork 現在可把長素材的理解、剪輯查核與人工微調接到同一份可驗證資料契約：
+
+| 能力 | 入口 | 產出 |
+|---|---|---|
+| 逐字稿整理 | `editorial_transcript` | `projects/<project_id>/artifacts/editorial_transcript.json`：word timestamps、phrase groups、speaker／source metadata、silence events、source fingerprint。 |
+| 剪輯邊界 QA | `cut_boundary_qa` | `cut_review.json`：逐一檢查相鄰 cut，標示 `split_word`、`insufficient_padding`，並可附 `timeline_inspection` 證據圖。 |
+| 時間軸檢視 | `timeline_inspector` | filmstrip + waveform + word labels + silence bands 的 PNG 與 JSON sidecar。 |
+| 人機協作編輯 | Backlot `/p/<project_id>/edit` | revisioned `edit_timeline.json`，支援 trim、reorder、zoom/focus keyframe。 |
+
+`edit_timeline` 是 authoring layer，不是另一個 renderer。`video_compose` 會將它轉回既有的
+`edit_decisions`，保留字幕、音訊、overlays、bespoke 與 automation 欄位，再依提案鎖定的
+`render_runtime` 渲染。Remotion 已支援 zoom keyframes；FFmpeg 與目前的 HyperFrames stock
+adapter 遇到未支援的 keyframe 會明確阻擋，不會靜默遺失編輯。
+
+### Backlot API
+
+啟動專案 board 後，編輯頁會從 legacy `edit_decisions.json` lazy-normalize 出 revision `0`：
+
+```bash
+python -m backlot open <project_id>
+```
+
+```http
+GET   /api/project/{project_id}/edit-timeline
+PATCH /api/project/{project_id}/edit-timeline
+```
+
+PATCH body 必須包含 `base_revision` 與 `operations`。每次成功更新都以 atomic replace 遞增
+revision；過期 revision 回傳 `409`，未知操作或不合法 segment 回傳 `400`。完整 artifact、
+操作 payload、渲染限制與導入決策請參閱 [`docs/EDIT_TIMELINE.md`](docs/EDIT_TIMELINE.md)。
+
+### 適用範圍
+
+這組工具已以 optional 方式接入 `talking-head`、`clip-factory`、`podcast-repurpose`、
+`hybrid`、`screen-demo` 與 `openmontage-video`。素材導向流程可用它建立可稽核的剪輯證據；
+純生成式流程不需要額外產生這些 artifact。瀏覽器 `getDisplayMedia`、webcam／microphone
+即時捕捉、多軌 realtime capture 與 OpenVid 的 GLB mockup runtime 尚未直接導入，既有
+Playwright recorder、HyperFrames 與 Three.js／Blender 路徑維持不變。
+
+### 參考專案與授權邊界
+
+本次採用的是 clean-room、AutoScene-native 實作：沒有複製或 vendoring 任一參考專案的程式碼
+或資產。`video-use` 為 MIT；`openvid` 使用 PolyForm Noncommercial 1.0.0 source-available
+授權，並非 OSI open source。若未來要直接整合 OpenVid 或進行商用，請先完成個別授權與法務
+審查；本 repository 仍依 [`LICENSE`](LICENSE) 的 AGPLv3 發布。
+
+<a id="three-features"></a>
+
+## 三大特點
+
+1. **自動音樂節點剪接** — 分析音樂節拍並將語意剪輯點吸附到有效節點，在節拍同步、
+   字幕可讀性與敘事停留時間之間取得平衡。
+2. **3D UI 呈現** — 透過 HyperFrames 製作具透視、深度位移與多平面相對運動的原生 3D UI，
+   不以全畫面滑動、抖動或全域縮放冒充 3D。
+3. **2D UI Recordly 操作錄製** — 以 Playwright 依允許的操作流程錄製真實網站 UI，呈現游標、
+   點擊漣漪與有意義的焦點縮放；也能匯入 Recordly 匯出的 MP4／WebM 素材。
+
+上述三項能力預設為 `required`，缺少必要執行環境或素材時會明確停止，不會靜默降級。
+詳細使用方式請參閱下方的 [`$openmontage-video`](#openmontage-video) 章節。
+
+### 三大特點使用的開源專案
+
+| 本 Fork 特點 | 導入位置 | 採用的開源專案 |
+|---|---|---|
+| 自動音樂節點剪接 | [`audio_timing`](tools/audio/audio_timing.py) 分析節拍、產生 `audiomap` 並驗證吸附容差 | [`librosa`](https://github.com/librosa/librosa) 音訊分析、[`FFmpeg`](https://ffmpeg.org/) 編碼與混音 |
+| 3D UI 呈現 | [`hyperframes_compose`](tools/video/hyperframes_compose.py) 執行 doctor／lint／validate／inspect 與渲染 | [`HyperFrames`](https://github.com/heygen-com/hyperframes) HTML／CSS／時序式影片渲染框架 |
+| 2D UI Recordly 操作錄製 | [`playwright_recorder`](tools/capture/playwright_recorder.py) 執行安全的瀏覽器流程與焦點事件 | [`Playwright`](https://github.com/microsoft/playwright) 瀏覽器自動化、[`Recordly`](https://github.com/webadderallorg/Recordly) 桌面錄影與 MP4／WebM 匯出 |
+
+<a id="workflow"></a>
+
+## 工作流程圖
+
+下圖說明三大能力如何從素材準備階段一路進入剪輯、驗證與最終輸出：
+
+```mermaid
+flowchart TD
+    A["自然語言需求<br/>$openmontage-video"] --> B["建立 job.yaml<br/>素材模式：provided / record / mixed"]
+    B --> C["Preflight 預檢<br/>FFmpeg · Node.js 22 · Chromium · HyperFrames"]
+    C --> D["腳本與分鏡<br/>鎖定語意剪輯點、UI 焦點與 3D 場景"]
+
+    D --> F1["① 2D UI Recordly 操作錄製<br/>Playwright allowlist 流程、游標與點擊漣漪"]
+    D --> F2["② 3D UI 呈現<br/>HyperFrames 多平面、透視與深度位移"]
+    D --> S["自備／匯入素材<br/>provided media 或 Recordly MP4／WebM"]
+
+    F1 --> M["③ 自動音樂節點剪接<br/>audio_timing 分析節拍並建立 audiomap"]
+    F2 --> M
+    S --> M
+    M --> R["素材／音樂／腳本審核"]
+    R --> E["初剪 Edit<br/>整合真實 UI、音樂與 3D 場景"]
+
+    E --> E1["節拍吸附<br/>語意剪輯點 ±250 ms"]
+    E --> E2["2D UI 焦點控制<br/>依實際點擊，每場景最多一次縮放"]
+    E --> E3["3D 動態驗證<br/>至少兩個平面，觀察透視與相對運動"]
+
+    E1 --> Q["初剪版本審核<br/>rough-cut-report"]
+    E2 --> Q
+    E3 --> Q
+    Q --> H["Compose 與功能證據<br/>HyperFrames lint / validate / inspect"]
+    H --> V["最終候選版本審核<br/>feature_evidence + rights_privacy_review"]
+    V --> P["Publish<br/>H.264/AAC · 1920×1080 · 30 fps"]
+
+    classDef feature fill:#e8f3ff,stroke:#2f80ed,stroke-width:2px,color:#12304a;
+    classDef source fill:#eef7ee,stroke:#4b8b3b,stroke-width:2px,color:#21451a;
+    classDef gate fill:#fff4d6,stroke:#c98a00,stroke-width:2px,color:#4f3600;
+    class F1,F2,M feature;
+    class S source;
+    class R,Q,V gate;
+```
+
+其中三個藍色節點是本版本的核心能力：Playwright 負責可重現的 2D UI 操作、
+`audio_timing` 負責節拍節點與剪輯標記、HyperFrames 負責可驗證的 3D UI 深度。
+三者都必須在 `feature_evidence` 中留下通過證據，才可進入最終發布。
+
+<a id="quick-start"></a>
+
+## 快速開始
+
+### 1. 安裝依賴
+
+`$openmontage-video` 需要 Python 3.10+、FFmpeg、Node.js 22 與 Chromium。Pillow 已包含在
+`requirements.txt`，供 timeline evidence 與既有 graphics tools 使用。若三大能力
+維持預設的 `required`，請先安裝鎖定的影片工作流依賴：
+
+```bash
+python -m pip install -r requirements.txt -r requirements-openmontage-video.txt
+cd tools/capture/playwright_runtime
+npm ci
+npx playwright install chromium
+cd ../../..
+npx --yes hyperframes@0.7.109 doctor
+```
+
+`ui_3d: required` 另外要求 HyperFrames `0.7.109` 通過 doctor、lint、validate 與
+inspect；FFmpeg 必須位於 `PATH`。預設輸出為 1920×1080、30 fps、H.264/AAC。
+
+### 2. 呼叫 Skill 並建立 job
+
+在支援 Skill 的 AI coding assistant 中貼上自然語言需求。Agent 會建立
+`projects/<project_id>/job.yaml`，再依管線逐階段執行：
+
+```text
+$openmontage-video
+為本機產品製作 45 秒繁體中文產品示範影片。
+使用 record 模式操作 http://127.0.0.1:8000，展示主要 UI 操作與原始文件引用。
+保留自動音樂節點剪接、原生 3D UI 與 Playwright 2D UI 錄製，
+並在素材／音樂／腳本、初剪與最終候選三個查核點停下等待核准。
+```
+
+### 3. 在執行前驗證 job
+
+```bash
+python .agents/skills/openmontage-video/scripts/validate-job.py \
+  projects/<project_id>/job.yaml --normalized
+```
+
+驗證器只檢查格式、路徑、來源允許清單、操作白名單、功能相依與安全限制，不會啟動瀏覽器
+或修改專案。
+
+## 素材模式
+
+| 模式 | 必要輸入 | 使用情境 |
+|---|---|---|
+| `provided` | 使用者提供的影片、圖片、音訊或 Recordly MP4／WebM | 已有錄影或品牌素材，只需要自動剪輯與合成 |
+| `record` | `recording.base_url`、`allowed_origins` 與宣告式 `flows` | 由 Agent 在核准的 localhost／staging 網站錄製 UI |
+| `mixed` | 自備素材，以及可執行的瀏覽器錄製流程 | 將產品錄影與自訂音樂、Logo、旁白或其他素材混合 |
+
+Recordly v1 只接受匯出的 MP4／WebM，不解析 `.recordly` 專案檔。沒有足夠素材、網址或
+流程時，Skill 會要求補充資料或明確關閉功能，不會靜默略過。
+
+## Job 設定
+
+以下範例可直接複製後，再依網站實際 selector 與音樂檔案調整：
+
+```yaml
+version: "1.0"
+project_id: acme-product-demo
+source:
+  mode: record
+  media: []
+recording:
+  base_url: http://127.0.0.1:8000
+  allowed_origins:
+    - http://127.0.0.1:8000
+  flows:
+    - name: citation-drilldown
+      steps:
+        - {op: goto, url: http://127.0.0.1:8000/}
+        - {op: click, selector: "[data-testid='source-picker']"}
+        - {op: click, selector: "[data-testid='citation']"}
+        - {op: assert, selector: "[data-testid='pdf-viewer']", expected: "visible"}
+music:
+  mode: provided
+  path: assets/audio/track.mp3
+features:
+  beat_sync: required
+  ui_3d: required
+  ui_capture: required
+edit:
+  snap_tolerance_ms: 250
+  focus_budget_per_scene: 1
+  focus_scale: [1.20, 1.35]
+approvals:
+  mode: guided
+output:
+  resolution: 1920x1080
+  fps: 30
+  language: zh-TW
+```
+
+`features.*` 只有明確設定為 `off` 才能停用，且必須在 append-only `decision_log` 留下
+相同決策；`approvals.mode: autonomous` 也必須由 job 預先明確授權。
+
+## 審核關卡
+
+`guided` 模式有三個獨立、不可跳過的人工查核點：
+
+| 查核點 | 審核內容 | 通過後 |
+|---|---|---|
+| 素材／音樂／腳本 | 素材權利與隱私、錄製聯絡表、音樂節拍圖、3D 代表畫格與腳本 | 才能組接初剪 |
+| 初剪版本 | 720p H.264、已知問題、字幕與腳本變更紀錄 | 才能進入精剪與最終合成 |
+| 最終候選版本 | 1080p 候選片、音訊／字幕、功能證據與安全報告 | 才能 `publish` 正式母檔 |
+
+每次送審都會設為 `awaiting_human` 並停止。較早階段的核准、沉默或「繼續」不會核准目前階段。
+
+## 產出物
+
+每個專案都保留可續作的 job、決策紀錄與驗證產物：
+
+```text
+projects/<project_id>/
+├── job.yaml
+├── artifacts/
+│   ├── audiomap.json
+│   ├── rights_privacy_review.json
+│   ├── rough_cut_report.json
+│   ├── feature_evidence.json
+│   ├── editorial_transcript.json
+│   ├── cut_review.json
+│   ├── edit_timeline.json
+│   └── timeline_inspection.json
+├── assets/                  # 自備／匯入／錄製素材
+└── renders/final.mp4        # 通過最終核准後的 H.264/AAC 母檔
+```
+
+## 安全與限制
+
+- 瀏覽器使用全新 context，只允許 localhost 或 job 明列的來源；禁止跨來源 iframe、外部重新導向與登入狀態混入錄影。
+- job.yaml 禁止保存密碼、API Key、Cookie、storage state 或其他憑證；個資、權利不明素材與未核准來源會阻擋錄製／發布。
+- Playwright 只允許 `goto`、`click`、`fill`、`select`、`press`、`scroll`、`wait`、`assert`、`hold`、`screenshot`，禁止任意 JavaScript 與 Shell。
+- `ui_3d` 必須使用 HyperFrames；doctor／lint／validate／inspect 失敗時不得降級成 2D 或 FFmpeg。
+- 公開示範請使用 `tests/fixtures/openmontage_video_demo/` 的合成資料與原創／CC0 音樂，不要提交醫療文件、私人錄影、Pixabay 下載檔或授權未確認的字型。
+
+## 專案結構
+
+| 路徑 | 用途 |
+|---|---|
+| `.agents/skills/openmontage-video/` | Skill 契約、素材模式、安全、節拍同步與審核規則 |
+| `pipeline_defs/openmontage-video.yaml` | 獨立的 openmontage-video 階段與工具依賴 |
+| `schemas/jobs/`、`schemas/artifacts/` | job 與 `audiomap`／功能證據／editorial transcript／cut review／edit timeline 等產物 schema |
+| `tools/capture/` | Playwright 錄製器與瀏覽器執行環境 |
+| `tools/audio/` | 音樂節拍分析、節點吸附與驗證 |
+| `tools/analysis/` | 逐字稿正規化、時間軸 filmstrip/waveform 與剪輯邊界 QA |
+| `tools/video/` | HyperFrames、FFmpeg 與影片合成整合 |
+| `lib/edit_timeline.py`、`backlot/edit_api.py` | revisioned timeline contract 與 Backlot 編輯 API |
+| `tests/contracts/`、`tests/tools/`、`tests/backlot/` | 契約、工具、timeline revision 與 Backlot smoke 測試 |
+| `AGENT_GUIDE.md` | Agent 的全域操作規範與管線治理契約 |
+| `SECURITY.md` | 安全、隱私、憑證與錄製限制 |
+| `THIRD_PARTY_NOTICES.md` | 第三方依賴、授權與 SBOM 對照 |
+| `CONTRIBUTING.md` | Issue、Pull Request 與貢獻授權規則 |
+
+## 測試與貢獻
+
+```bash
+python scripts/license_scan.py --check
+python -m pytest -q \
+  tests/contracts/test_openmontage_video_contract.py \
+  tests/contracts/test_openmontage_video_release.py \
+  tests/tools/test_openmontage_video_tools.py
+```
+
+Source-led editing 的 focused tests：
+
+```bash
+python -m pytest -q \
+  tests/tools/test_editorial_editing.py \
+  tests/tools/test_edit_timeline_renderer.py \
+  tests/tools/test_timeline_inspector.py \
+  tests/tools/test_cut_evidence_contract.py \
+  tests/backlot/test_edit_api.py \
+  tests/backlot/test_editor_page.py
+```
+
+若已安裝 Chromium，可用 `OPENMONTAGE_VIDEO_E2E=1` 執行選用的 localhost E2E 測試。
+例如 PowerShell：
+
+```powershell
+$env:OPENMONTAGE_VIDEO_E2E="1"
+python -m pytest -q tests/tools/test_openmontage_video_e2e.py
+```
+
+修改 job schema、錄製器、音訊時序或 HyperFrames 契約時，請同步更新 schema、產物證據與測試，
+並透過 [Issues](https://github.com/calesthio/OpenMontage/issues) 或 Pull Request 提交變更；
+詳細規則請參閱 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
+Agent 操作規範、Skill 契約與安全文件請分別參閱 [`AGENT_GUIDE.md`](AGENT_GUIDE.md)、
+[`SKILL.md`](.agents/skills/openmontage-video/SKILL.md) 與 [`SECURITY.md`](SECURITY.md)。
 
 <p align="center">
   <a href="https://github.com/trending">
@@ -48,136 +389,23 @@
   <a href="https://github.com/calesthio/OpenMontage/discussions"><img src="https://img.shields.io/badge/Community-GitHub%20Discussions-0b1220?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions"></a>
 </p>
 
-## Sponsors
-
-> Want to support OpenMontage? [Sponsor the project](https://github.com/sponsors/calesthio).
-
-<details open>
-<summary>Click to collapse</summary>
-
-<table>
-<tr>
-<td width="180" align="center"><a href="https://bloome.im/app?ref=calesthio&utm_medium=github&utm_source=calesthio-OpenMontage-ivor-202607"><img src="assets/sponsors/bloome.png" alt="Bloome" width="150"></a></td>
-<td><strong>Bloome</strong> lets multiple AI agents (Claude, ChatGPT, DeepSeek, and more) collaborate in one conversation for agentic video pipelines. It has zero setup, runs in the cloud, works on web and mobile, and lets you share a configured agent with your whole team. <strong><a href="https://bloome.im/app?ref=calesthio&utm_medium=github&utm_source=calesthio-OpenMontage-ivor-202607">Try Bloome</a></strong>.</td>
-</tr>
-<tr>
-<td width="180" align="center"><a href="https://www.atlascloud.ai/coding-plan"><img src="assets/sponsors/atlas-cloud.png" alt="Atlas Cloud" width="150"></a></td>
-<td><strong>Atlas Cloud</strong> is a full-modal AI inference platform that gives developers a single AI API for video generation, image generation, and LLM APIs. Instead of managing multiple vendor integrations, you connect once and get unified access to 300+ curated models across all modalities. Check out Atlas Cloud's new <a href="https://www.atlascloud.ai/coding-plan">coding plan</a> promotion for more budget-friendly API access.</td>
-</tr>
-</table>
-
-</details>
-
 ---
 
-Turn your AI coding assistant into a full video production studio. Describe what you want in plain language — your agent handles research, scripting, asset generation, editing, and final composition.
+## 本 Fork 的主軸
 
-**Important distinction:** OpenMontage can make image-based videos, but it can also make a real **video video** for free/open-source workflows: the agent builds a corpus from free stock footage and open archives, retrieves actual motion clips, edits them into a timeline, and renders a finished piece. That is not the usual "animate a handful of stills and call it video" trick.
+本 README 不再嵌入上游 OpenMontage 的影片案例、參考影片展示或 Backlot 展示；閱讀主軸集中在
+本 Fork 新增的 `$openmontage-video` Skill、三大特點、可重現素材流程、三個人工查核關卡，
+以及 source-led editing／revisioned timeline contract。完整操作與 API 請參閱
+[`docs/EDIT_TIMELINE.md`](docs/EDIT_TIMELINE.md)。上游通用文件仍保留於專案目錄，請由 [`AGENT_GUIDE.md`](AGENT_GUIDE.md)、
+[`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) 與 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 進一步查閱。
 
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/f77ce7a4-68b8-4f94-a287-e94bf50a32e1" width="100%" controls></video>
-</div>
+<details>
+<summary>上游 OpenMontage 通用參考（非本 Fork 主軸）</summary>
 
-> **"SIGNAL FROM TOMORROW"** — a cinematic sci-fi trailer fully produced through OpenMontage: concept, script, scene plan, Veo-generated motion clips, soundtrack, and Remotion composition.
+以下內容保留作為上游相容性與開發參考；本 Fork 的安裝、Job、素材、審核與三大特點，
+請以本 README 上方章節為準。
 
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/8daca07f-cdf8-4bec-89c3-9dc2176363fa" width="100%" controls></video>
-</div>
-
-> **"THE LAST BANANA"** — a 60-second Pixar-style animated short about a lonely banana who finds friendship with a kiwi. 6 Kling v3-generated motion clips (via fal.ai), Google Chirp3-HD narration, royalty-free piano music, TikTok-style word-level captions, and Remotion composition. Total cost: **$1.33**.
-
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/88962725-97a0-4aac-a08e-34aaa9d8bb92" width="100%" controls></video>
-</div>
-
-> **"Reimagine Your Universe"** — a 50-second vertical transformation film in which one visual idea moves across objects, eras, materials, and scale. Five generated motion scenes, sparse Google Chirp narration, a Pixabay score, and a bespoke HyperFrames composition turn separate clips into one authored cinematic journey. Total cost: **about $4**.
-
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/c947070c-95ee-4d73-8d76-0bd3dc4826eb" width="100%" controls></video>
-</div>
-
-> **"Products Come to Life"** — a 60-second product film built from approved hero stills. Five hard-surface products separate into their own engineering and reassemble, with each still pinned as the first and last frame so the model invents motion without losing product identity. Image-to-video generation, bespoke sound, narration, and a custom composition complete the film.
-
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/6815c2d2-17a3-4057-b9a0-893fc9c05bef" width="100%" controls></video>
-</div>
-
-> **"Imagine the Possibilities with OpenMontage"** — seven generated worlds collected into one music-only showcase. Three image models supply campaign, fashion, and miniature-world artwork; four video models expand the journey through architecture, material transformation, a living greenhouse, and a creature encounter. OpenMontage animates the stills, edits the motion, unifies the soundtrack, and closes with Monty the Clapper. Source generation cost: **about $5**.
-
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/a524f02a-2d18-42ca-a2c4-d3dc09503546" width="100%" controls></video>
-</div>
-
-> **"How Salt Made History"** — a 100-second cinematic documentary about the mineral that funded empires, shaped trade routes, sparked revolutions, and gave us the word “salary.” Real-world footage is woven together with original narration and hand-authored motion graphics for its etched title, etymology reveal, animated maps, historical timeline, and closing thesis.
-
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/61919fb8-9dd1-446c-b833-dca82f6a3af8" width="100%" controls></video>
-</div>
-
-> **"One Prompt Built This Complete 3D World"** — a continuous 60-second journey through one coherent, editable fantasy world. Distinct terrain regions, an inhabited village, waterways, ruins, dense vegetation, and a late hero-landmark reveal are assembled from textured 3D assets, then brought together with cinematic lighting, atmospheric music, and a planned camera path.
-
-<p align="center">
-  <a href="https://www.youtube.com/@OpenMontage?sub_confirmation=1"><strong>Subscribe to @OpenMontage on YouTube</strong></a> to see new videos as they ship — every video includes the full prompt, pipeline, tools used, and cost so you can reproduce it yourself.
-</p>
-
----
-
-## Start From A Video You Already Love
-
-Starting from a reference video is often faster than starting from a blank prompt.
-
-OpenMontage can start from a **YouTube video, Short, Reel, TikTok, or local clip** and turn it into a grounded production plan:
-
-1. **Paste a reference video**
-2. **The agent analyzes transcript, pacing, scenes, keyframes, and style**
-3. **You get 2-3 differentiated concepts, an honest tool path, cost estimates, and a sample before full production**
-
-```text
-"Here's a YouTube Short I love. Make me something like this, but about quantum computing."
-```
-
-What you get back is not "best guess prompt spaghetti." You get:
-
-- **What it keeps** from the reference: pacing, hook style, structure, tone
-- **What it changes**: topic, visual treatment, angle, narration approach
-- **What it will cost** at your target duration, before asset generation starts
-- **What it will actually look like** with your currently available tools
-
-Works with **Claude Code, Cursor, Copilot, Windsurf, Codex** — any AI coding assistant that can read files and run code.
-
----
-
-## Watch It Happen — The Backlot Living Storyboard
-
-Chat tells you what the agent *said*. **Backlot shows you what the production is actually doing** — a local board that fills itself in as the pipeline runs. Stages light up, the script lands as a screenplay page, scene cards shimmer while assets generate, and every provider decision and dollar spent is on the wall.
-
-When a production starts, the agent opens it for you automatically. No setup, no reporting — the board derives everything from the project files the pipeline already writes.
-
-<p align="center"><img src="docs/images/backlot/board-live.png" alt="Backlot live board — assets generating" width="920"></p>
-
-**The storyboard is now a real approval gate.** Asset generation pauses on a scene-by-scene contact sheet — takes, prompts, per-asset cost, quality scores — so you approve the visuals *before* the render, not after it's too late:
-
-<p align="center"><img src="docs/images/backlot/storyboard.png" alt="Backlot storyboard — filmstrip with takes and renders" width="920"></p>
-
-Creative gates hold until you answer. The board shows what's waiting and why; you reply in chat:
-
-<p align="center"><img src="docs/images/backlot/script-gate.png" alt="Backlot script gate — awaiting approval" width="920"></p>
-
-Every production on your machine, live-first, in the library:
-
-<p align="center"><img src="docs/images/backlot/library.png" alt="Backlot library" width="920"></p>
-
-```bash
-python -m backlot open                  # the library — every project on disk
-python -m backlot open <project-id>     # one production's live board
-python scripts/backlot_simulate_run.py  # no production yet? watch a simulated one live
-```
-
-And when a run is done, hit **▶ REPLAY RUN** — the whole production replays from its timestamps, scrubbable end to end. See [`backlot/README.md`](backlot/README.md) for how it works.
-
----
-
-## Quick Start
+## OpenMontage 通用快速開始
 
 ### Prerequisites
 
@@ -369,6 +597,7 @@ Each pipeline is a complete production workflow, from idea to finished video.
 | **Localization & Dub** | Subtitle, dub, and translate existing video | Multi-language distribution |
 | **Podcast Repurpose** | Podcast highlights to video | Podcast marketing, audiogram videos |
 | **Screen Demo** | Polished software screen recordings and walkthroughs | Product demos, tutorials, documentation |
+| **OpenMontage 影片** | 以自備、錄製或混合素材製作可重現的產品影片，支援節拍同步、原生 3D UI 與安全的 2D UI 錄製 | 開源自動化產品發布工作流 |
 | **Talking Head** | Footage-led speaker videos | Presentations, vlogs, interviews |
 
 Every pipeline follows the same structured flow:
@@ -379,7 +608,180 @@ research -> proposal -> script -> scene_plan -> assets -> edit -> compose
 
 Each stage has a dedicated **director skill** — a markdown instruction file that teaches the agent exactly how to execute that stage. The agent reads the skill, uses the tools, self-reviews, checkpoints state, and asks for human approval at creative decision points.
 
-> **Web research is a first-class stage.** Before writing a single word of script, the agent searches YouTube, Reddit, Hacker News, news sites, and academic sources. It gathers data points, audience questions, trending angles, and visual references — then cites everything in a structured research brief. Your videos are grounded in real, current information, not hallucinated facts.
+### `$openmontage-video`
+
+`$openmontage-video` 是 OpenMontage 的可重現產品影片工作流。它會將自然語言需求轉換為
+`pipeline_defs/openmontage-video.yaml` 中的管線定義、可攜式的
+`projects/<id>/job.yaml`，以及可稽核的素材產物。這套工作流適合產品發布、軟體示範、
+文件教學，以及需要同時呈現操作介面與剪輯依據的影片。
+
+#### 三大核心能力
+
+三項能力預設皆為 `required`。Skill 必須為三項能力產出可驗證證據；只要必要的執行環境
+或輸入素材不可用，就必須清楚回報阻礙並停止。只有在 job 中明確設定為 `off` 才能關閉
+功能，且該決定會追加寫入專案的決策紀錄。
+
+1. **自動音樂節點剪接** — `audio_timing` 分析節拍網格，將語意剪輯標記吸附到宣告容差
+   內最近的有效節點（預設為 250 ms）。字幕可讀性、結果停留時間與語意鎖定優先於強制對拍。
+2. **原生 3D UI 呈現** — HyperFrames 以真實多平面 UI 場景呈現透視、深度位移與可觀察的
+   相對運動。全畫面滑動、反覆抖動或全域縮放都不算 3D 證據。當 `ui_3d` 為 `required`
+   時，HyperFrames doctor 或執行環境失敗就是硬性阻礙；管線不會靜默降級為 2D 或 FFmpeg。
+3. **2D UI Recordly 風格錄製** — `playwright_recorder` 使用全新瀏覽器工作階段，依允許來源
+   清單錄製宣告式流程，並產生游標／點擊回饋與可驅動單次聚焦縮放的焦點事件。既有 Recordly
+   匯出檔可匯入 MP4 或 WebM；v1 不解析 Recordly 的 `.recordly` 專案檔。
+
+#### 選擇素材模式
+
+| `source.mode` | 功能 | 適用情境 |
+|---|---|---|
+| `provided` | 使用使用者提供的影片、圖片、音訊或 Recordly MP4/WebM | 已完成的螢幕錄影搭配品牌素材 |
+| `record` | 對核准網址執行宣告式 Playwright 流程 | 可重現的 localhost 或 staging 產品示範 |
+| `mixed` | 混合自備素材與 Agent 錄製的瀏覽器畫面 | 搭配自訂音樂、Logo 或旁白的產品示範 |
+
+瀏覽器錄製器只接受 `goto`、`click`、`fill`、`select`、`press`、`scroll`、`wait`、
+`assert`、`hold` 與 `screenshot`。任意 JavaScript、Shell 指令、跨來源重新導向、憑證、
+Cookie 與未列入允許清單的來源，都會在錄製前被拒絕。
+
+#### 從 AI coding assistant 開始使用
+
+直接呼叫 Skill，並在需求中說明產品、素材模式、目標網址或素材路徑、想傳達的訊息與輸出語言。
+例如：
+
+```text
+$openmontage-video
+為本機 Acme 知識助理製作 45 秒產品示範影片。
+使用 record 模式操作 http://127.0.0.1:8000，展示來源選擇器、模型選單，
+以及點擊引用後開啟原始 PDF。啟用預設節拍同步、原生 3D UI 與 Playwright 2D 錄製。
+輸出 zh-TW 字幕，並在每個審核關卡暫停。
+```
+
+Agent 會將需求正規化為 job，並在後續對話中從下一個尚未完成的關卡續作。一般性的「繼續」
+或較早階段的核准，都不會被視為其他階段的核准。
+
+#### 可攜式 `job.yaml`
+
+job 檔案是純 YAML，不包含密碼、API Key、Cookie 或瀏覽器儲存狀態。以下最小化的 record
+模式範例可以安全提交至版本庫：
+
+```yaml
+version: "1.0"
+project_id: acme-product-demo
+source:
+  mode: record
+  media: []
+recording:
+  base_url: http://127.0.0.1:8000
+  allowed_origins:
+    - http://127.0.0.1:8000
+  flows:
+    - name: citation-drilldown
+      steps:
+        - {op: goto, url: http://127.0.0.1:8000/}
+        - {op: click, selector: "[data-testid='source-picker']"}
+        - {op: click, selector: "[data-testid='citation']"}
+        - {op: assert, selector: "[data-testid='pdf-viewer']", expected: "visible"}
+music:
+  mode: library
+  path: music_library/cc0-tech.mp3
+features:
+  beat_sync: required
+  ui_3d: required
+  ui_capture: required
+edit:
+  snap_tolerance_ms: 250
+  focus_budget_per_scene: 1
+  focus_scale: [1.20, 1.35]
+approvals:
+  mode: guided
+output:
+  resolution: 1920x1080
+  fps: 30
+  language: zh-TW
+```
+
+不啟動瀏覽器、不修改專案即可驗證 job：
+
+```bash
+python .agents/skills/openmontage-video/scripts/validate-job.py \
+  projects/acme-product-demo/job.yaml --normalized
+```
+
+#### 安裝選用的影片工作流依賴
+
+主要 OpenMontage 安裝仍足以執行其他管線。若需要瀏覽器錄製或嚴格的 3D／節拍同步契約，
+請再安裝鎖定版本的 OpenMontage 影片依賴：
+
+```bash
+python -m pip install -r requirements-openmontage-video.txt
+
+# 鎖定的 HyperFrames 執行環境需要 Node.js 22。
+cd tools/capture/playwright_runtime
+npm ci
+npx playwright install chromium
+cd ../../..
+```
+
+FFmpeg 必須位於 `PATH`。設定 `ui_3d: required` 的 job 也需要固定版本的 HyperFrames
+`0.7.109` 執行環境，才能通過 doctor 與驗證檢查。預設輸出契約為 1920×1080、30 fps、
+H.264/AAC。
+
+#### 審核關卡與產出物
+
+`guided` 模式會在以下三個獨立核准點停止：
+
+1. **素材／音樂／腳本審核** — 素材權利與隱私審查、錄製縮圖聯絡表、節拍圖、3D 代表畫格與提案腳本。
+2. **初剪版本審核** — 可供檢視的 720p H.264 初剪、已知問題，以及相對於核准分鏡的變更紀錄。
+3. **最終候選版本審核** — 1080p 影片、最終音訊／字幕、功能證據與最終安全查核報告。
+
+只有針對目前關卡的明確核准，才能執行下一階段。最終核准後，`publish` 才會封裝母檔；
+若要修改畫面或創意，必須建立新的候選版本，不會覆寫已核准檔案。
+
+專案工作區除了標準 OpenMontage 產物，還會包含：
+
+```text
+projects/<id>/
+├── job.yaml
+├── artifacts/
+│   ├── audiomap.json
+│   ├── rights_privacy_review.json
+│   ├── rough_cut_report.json
+│   └── feature_evidence.json
+├── assets/                  # 自備／匯入／錄製素材
+└── renders/final.mp4        # 發布的 H.264/AAC 母檔
+```
+
+#### 安全、權利與可重現性
+
+- 瀏覽器錄製使用全新的工作階段與明確的 localhost／來源允許清單。驗證登入與錄影分離；
+  私密儲存狀態僅暫存，流程完成後會銷毀。
+- job 不會儲存秘密。個資、API 憑證、權利不明的素材或未核准的外部重新導向，都會阻擋錄製與發布。
+- 公開範例應使用 `tests/fixtures/openmontage_video_demo/` 的合成資料，以及原創或 CC0 音樂。
+  請勿提交私人產品錄影、醫療文件、Pixabay 下載檔或授權尚未確認的字型。
+- 可重現性是指相同 job、鎖定依賴與輸入，會在文件所述的渲染容差內產生相同時間軸與產物；
+  不保證不同作業系統產生位元完全一致的 MP4。
+
+完整契約請參考 `.agents/skills/openmontage-video/`、管線定義
+`pipeline_defs/openmontage-video.yaml`、[`SECURITY.md`](SECURITY.md)、
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)，以及 CycloneDX SBOM
+`docs/sbom/openmontage-video.cdx.json`。
+
+#### 測試實作
+
+```bash
+python scripts/license_scan.py --check
+python -m pytest -q \
+  tests/contracts/test_openmontage_video_contract.py \
+  tests/contracts/test_openmontage_video_release.py \
+  tests/tools/test_openmontage_video_tools.py
+```
+
+選用的 localhost 瀏覽器 smoke test 需要 Chromium，並以 `OPENMONTAGE_VIDEO_E2E=1` 啟用。
+若貢獻修改 job schema、錄製器、音訊時序或 HyperFrames 契約，也應同步更新對應的 schema、
+產物證據與契約測試。
+
+> **網路研究是正式階段。** 在撰寫任何腳本之前，Agent 會搜尋 YouTube、Reddit、Hacker News、
+> 新聞網站與學術來源，蒐集資料、觀眾問題、熱門切入角度與視覺參考，再將來源整理引用於結構化
+> 研究簡報中，讓影片建立在即時且可查證的資訊上，而不是未經查證的臆測。
 
 ---
 
@@ -704,6 +1106,10 @@ All platform files point to the shared `AGENT_GUIDE.md` (operating guide and age
 
 ---
 
+</details>
+
+---
+
 ## Contributing
 
 OpenMontage is built to be extended. The two most common contributions:
@@ -732,6 +1138,28 @@ We use [GitHub Discussions](https://github.com/calesthio/OpenMontage/discussions
 - **[Q&A](https://github.com/calesthio/OpenMontage/discussions/categories/q-a)** — Ask questions about setup, pipelines, or troubleshooting
 
 Made something cool? Post it in Show and Tell — we'd love to see what you build.
+
+---
+
+## Sponsors
+
+> Want to support OpenMontage? [Sponsor the project](https://github.com/sponsors/calesthio).
+
+<details open>
+<summary>Click to collapse</summary>
+
+<table>
+<tr>
+<td width="180" align="center"><a href="https://bloome.im/app?ref=calesthio&utm_medium=github&utm_source=calesthio-OpenMontage-ivor-202607"><img src="assets/sponsors/bloome.png" alt="Bloome" width="150"></a></td>
+<td><strong>Bloome</strong> lets multiple AI agents (Claude, ChatGPT, DeepSeek, and more) collaborate in one conversation for agentic video pipelines. It has zero setup, runs in the cloud, works on web and mobile, and lets you share a configured agent with your whole team. <strong><a href="https://bloome.im/app?ref=calesthio&utm_medium=github&utm_source=calesthio-OpenMontage-ivor-202607">Try Bloome</a></strong>.</td>
+</tr>
+<tr>
+<td width="180" align="center"><a href="https://www.atlascloud.ai/coding-plan"><img src="assets/sponsors/atlas-cloud.png" alt="Atlas Cloud" width="150"></a></td>
+<td><strong>Atlas Cloud</strong> is a full-modal AI inference platform that gives developers a single AI API for video generation, image generation, and LLM APIs. Instead of managing multiple vendor integrations, you connect once and get unified access to 300+ curated models across all modalities. Check out Atlas Cloud's new <a href="https://www.atlascloud.ai/coding-plan">coding plan</a> promotion for more budget-friendly API access.</td>
+</tr>
+</table>
+
+</details>
 
 ---
 
@@ -767,7 +1195,13 @@ make test
 
 ---
 
-## License
+## 上游專案與授權
+
+本專案基於 [OpenMontage](https://github.com/calesthio/OpenMontage)，採
+[GNU AGPLv3](LICENSE) 授權，並且是非官方 Fork。上游的通用管線與工具仍依原授權提供；
+新增功能的第三方依賴、授權與 SBOM 請參閱 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
+與 `docs/sbom/openmontage-video.cdx.json`。請在再散布或提供網路服務時遵守 AGPLv3 的來源公開與
+授權義務。
 
 [GNU AGPLv3](LICENSE)
 
