@@ -408,7 +408,7 @@ class PlaywrightRecorder(BaseTool):
             data = {
                 "status": "recorded",
                 "output_path": str(output_path),
-                "webm_path": str(source_webm),
+                "webm_path": str(public_webm),
                 "manifest_path": str(manifest_path),
                 "privacy_report_path": str(privacy_path),
                 "contact_sheet_path": str(contact_sheet) if contact_sheet else None,
