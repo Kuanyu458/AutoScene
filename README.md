@@ -1,22 +1,22 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/monty-dark.svg">
-    <img src="assets/monty-light.svg" alt="Monty the Clapper — the official mascot of OpenMontage" width="200">
+    <img src="assets/monty-light.svg" alt="Monty the Clapper — the official mascot of AutoScene" width="200">
   </picture>
 </p>
 
-<p align="center"><sub><em>Monty the Clapper — the official mascot of OpenMontage</em></sub></p>
+<p align="center"><sub><em>Monty the Clapper — the official mascot of AutoScene</em></sub></p>
 
-<h1 align="center">OpenMontage</h1>
+<h1 align="center">AutoScene</h1>
 
 <p align="center"><strong>開源、由 Agent 驅動的影片製作系統。</strong></p>
 
-> 本專案是基於 [OpenMontage](https://github.com/calesthio/OpenMontage) 的 AGPLv3 開源 Fork，
+> AutoScene 是基於 [OpenMontage](https://github.com/calesthio/OpenMontage) 的 AGPLv3 開源 Fork，
 > 新增 [`$openmontage-video`](.agents/skills/openmontage-video/SKILL.md) Skill，讓使用者可以
 > 使用自備素材、Agent 自動錄製素材，或混合兩者製作可重現的產品影片。
 
 <p align="center">
-  <a href="https://openmontage.video"><img src="https://img.shields.io/badge/Website-openmontage.video-d14a28?style=for-the-badge" alt="openmontage.video"></a>
+  <a href="https://github.com/calesthio/OpenMontage"><img src="https://img.shields.io/badge/forked%20from-OpenMontage-6f42c1?style=for-the-badge" alt="Forked from OpenMontage"></a>
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License"></a>
   <a href="#本-fork-修改內容"><img src="https://img.shields.io/badge/status-beta-f0ad4e.svg" alt="Beta status"></a>
-  <a href="https://github.com/calesthio/OpenMontage"><img src="https://img.shields.io/badge/upstream-OpenMontage-6f42c1.svg" alt="Upstream OpenMontage"></a>
+  <a href="https://github.com/calesthio/OpenMontage"><img src="https://img.shields.io/badge/upstream-OpenMontage-6f42c1.svg" alt="Forked from OpenMontage"></a>
 </p>
 
 <a id="fork-changes"></a>
